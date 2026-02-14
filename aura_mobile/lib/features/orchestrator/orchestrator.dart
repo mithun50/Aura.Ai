@@ -20,11 +20,7 @@ class Orchestrator {
       }
     }
 
-    if (selectedAgent == null) {
-      // Fallback to conversation agent if specific one not found, or error
-      // Assuming the last one is conversation or we have a default
-      selectedAgent = _agents.firstWhere((a) => a.name == 'ConversationAgent', orElse: () => _agents.first);
-    }
+    selectedAgent ??= _agents.firstWhere((a) => a.name == 'ConversationAgent', orElse: () => _agents.first);
 
     // 3. Process
     yield* selectedAgent.process(input);

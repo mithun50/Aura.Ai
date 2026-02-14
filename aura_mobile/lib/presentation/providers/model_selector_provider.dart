@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aura_mobile/domain/entities/model_info.dart';
 import 'package:aura_mobile/data/datasources/model_manager.dart';
 import 'package:aura_mobile/core/providers/ai_providers.dart';
-import 'package:aura_mobile/ai/run_anywhere_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 

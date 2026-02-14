@@ -3,8 +3,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:fllama/fllama.dart';
+import 'package:fllama/fllama_type.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 
 class DownloadUpdate {
@@ -24,6 +24,8 @@ class RunAnywhere {
 
   bool _isInitialized = false;
   String? _currentModelPath;
+  double? _contextId;
+  StreamSubscription? _tokenStreamSubscription;
 
   final _downloadStreamController =
       StreamController<DownloadUpdate>.broadcast();
@@ -33,7 +35,7 @@ class RunAnywhere {
   final ReceivePort _port = ReceivePort();
 
   /// Whether a model is currently loaded and ready for inference
-  bool get isModelLoaded => _currentModelPath != null;
+  bool get isModelLoaded => _currentModelPath != null && _contextId != null;
   String? get currentModelPath => _currentModelPath;
 
   // ==================== DOWNLOAD MANAGEMENT ====================
@@ -180,14 +182,38 @@ class RunAnywhere {
       }
     }
 
-    _currentModelPath = finalPath;
-    if (kDebugMode) debugPrint('RunAnywhere: Model path set to $finalPath');
+    // Release previous context if any
+    if (_contextId != null) {
+      try {
+        await Fllama.instance()?.releaseContext(_contextId!);
+      } catch (e) {
+        if (kDebugMode) debugPrint('RunAnywhere: Error releasing old context: $e');
+      }
+    }
+
+    // Initialize new context
+    if (kDebugMode) debugPrint('RunAnywhere: Loading model from $finalPath');
+
+    final result = await Fllama.instance()?.initContext(
+      finalPath,
+      nCtx: 2048,
+      nBatch: 512,
+      emitLoadProgress: true,
+    );
+
+    if (result != null && result.containsKey('contextId')) {
+      _contextId = (result['contextId'] as num).toDouble();
+      _currentModelPath = finalPath;
+      if (kDebugMode) debugPrint('RunAnywhere: Model loaded, contextId=$_contextId');
+    } else {
+      throw Exception('Failed to initialize model context: $result');
+    }
   }
 
-  // ==================== CHAT INFERENCE (CORRECT fllama API) ====================
+  // ==================== CHAT INFERENCE (FCllama API) ====================
 
-  /// Chat with the model using the correct fllamaChat() API.
-  /// Returns a stream of accumulated response text chunks.
+  /// Chat with the model using FCllama's getFormattedChat + completion API.
+  /// Returns a stream of token strings.
   Stream<String> chat({
     required String prompt,
     String? systemPrompt,
@@ -195,55 +221,98 @@ class RunAnywhere {
     double temperature = 0.7,
     int contextSize = 2048,
   }) {
-    if (_currentModelPath == null) {
+    if (_contextId == null || _currentModelPath == null) {
       return Stream.error(Exception('No model loaded'));
     }
 
     final controller = StreamController<String>();
+    final contextId = _contextId!;
 
-    final messages = <Message>[
+    // Build chat messages using RoleContent
+    final messages = <RoleContent>[
       if (systemPrompt != null && systemPrompt.isNotEmpty)
-        Message(Role.system, systemPrompt),
-      Message(Role.user, prompt),
+        RoleContent(role: 'system', content: systemPrompt),
+      RoleContent(role: 'user', content: prompt),
     ];
 
-    final request = OpenAiRequest(
-      maxTokens: maxTokens,
-      messages: messages,
-      modelPath: _currentModelPath!,
-      contextSize: contextSize,
-      temperature: temperature,
-      presencePenalty: 1.1,
-      frequencyPenalty: 0.0,
-      topP: 0.9,
-    );
+    // Cancel any previous token stream listener
+    _tokenStreamSubscription?.cancel();
 
-    String previousResponse = '';
-
-    fllamaChat(request, (String response, String openaiJson, bool done) {
-      // response is the accumulated text so far
-      // Extract only the new tokens since last callback
-      if (response.length > previousResponse.length) {
-        final newToken = response.substring(previousResponse.length);
-        previousResponse = response;
-        if (!controller.isClosed) {
-          controller.add(newToken);
+    // Listen for tokens from the event stream
+    _tokenStreamSubscription =
+        Fllama.instance()?.onTokenStream?.listen((data) {
+      final function = data['function'];
+      if (function == 'completion') {
+        final result = data['result'];
+        if (result is Map && result.containsKey('token')) {
+          final token = result['token']?.toString() ?? '';
+          if (token.isNotEmpty && !controller.isClosed) {
+            controller.add(token);
+          }
         }
       }
-      if (done) {
-        if (!controller.isClosed) {
-          controller.close();
-        }
+    });
+
+    // Format chat and run completion
+    _runCompletion(
+      contextId: contextId,
+      messages: messages,
+      maxTokens: maxTokens,
+      temperature: temperature,
+    ).then((_) {
+      _tokenStreamSubscription?.cancel();
+      if (!controller.isClosed) controller.close();
+    }).catchError((e) {
+      _tokenStreamSubscription?.cancel();
+      if (!controller.isClosed) {
+        controller.addError(e);
+        controller.close();
       }
     });
 
     return controller.stream;
   }
 
+  Future<void> _runCompletion({
+    required double contextId,
+    required List<RoleContent> messages,
+    required int maxTokens,
+    required double temperature,
+  }) async {
+    // Format messages using the model's chat template
+    final formattedPrompt = await Fllama.instance()?.getFormattedChat(
+      contextId,
+      messages: messages,
+    );
+
+    if (formattedPrompt == null || formattedPrompt.isEmpty) {
+      throw Exception('Failed to format chat messages');
+    }
+
+    // Run completion with realtime token emission
+    await Fllama.instance()?.completion(
+      contextId,
+      prompt: formattedPrompt,
+      temperature: temperature,
+      nPredict: maxTokens,
+      topP: 0.9,
+      penaltyRepeat: 1.1,
+      penaltyFreq: 0.0,
+      penaltyPresent: 0.0,
+      emitRealtimeCompletion: true,
+      stop: ['<|im_end|>', '<|endoftext|>', '</s>'],
+    );
+  }
+
   // ==================== CLEANUP ====================
 
   void dispose() {
+    _tokenStreamSubscription?.cancel();
+    if (_contextId != null) {
+      Fllama.instance()?.releaseContext(_contextId!);
+    }
     _currentModelPath = null;
+    _contextId = null;
     _downloadStreamController.close();
   }
 }
