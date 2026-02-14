@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer aura ring -->
+    <path
+        android:fillColor="#10A37F"
+        android:fillAlpha="0.25"
+        android:pathData="M54,18 A36,36,0,1,1,53.99,18 Z M54,23 A31,31,0,1,0,53.99,23 Z"
+        android:fillType="evenOdd"/>
+
+    <!-- Inner green circle -->
+    <path
+        android:fillColor="#10A37F"
+        android:pathData="M54,26 A28,28,0,1,1,53.99,26 Z"/>
+
+    <!-- Letter A (white, cut from circle) -->
+    <path
+        android:fillColor="#171717"
+        android:pathData="M54,35 L38,77 L45,77 L48.5,67 L59.5,67 L63,77 L70,77 Z M54,48 L50,62 L58,62 Z"
+        android:fillType="evenOdd"/>
+
+</vector>
