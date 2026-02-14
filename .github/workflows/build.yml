@@ -34,10 +34,10 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Accept Android licenses & install NDK
+      - name: Accept Android licenses & install NDK + CMake
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.0.12433566" > /dev/null 2>&1
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.0.12433566" "cmake;3.31.0" > /dev/null 2>&1
         working-directory: .
 
       - name: Install dependencies
