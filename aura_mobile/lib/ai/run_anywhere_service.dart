@@ -273,21 +273,25 @@ class RunAnywhere {
     return controller.stream;
   }
 
+  /// Format messages into ChatML template (works with all GGUF models).
+  /// Bypasses getFormattedChat which has a Java casting bug.
+  String _formatChatML(List<RoleContent> messages) {
+    final buffer = StringBuffer();
+    for (final msg in messages) {
+      buffer.write('<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n');
+    }
+    buffer.write('<|im_start|>assistant\n');
+    return buffer.toString();
+  }
+
   Future<void> _runCompletion({
     required double contextId,
     required List<RoleContent> messages,
     required int maxTokens,
     required double temperature,
   }) async {
-    // Format messages using the model's chat template
-    final formattedPrompt = await Fllama.instance()?.getFormattedChat(
-      contextId,
-      messages: messages,
-    );
-
-    if (formattedPrompt == null || formattedPrompt.isEmpty) {
-      throw Exception('Failed to format chat messages');
-    }
+    // Format messages using ChatML template (manual, avoids native bug)
+    final formattedPrompt = _formatChatML(messages);
 
     // Run completion with realtime token emission
     await Fllama.instance()?.completion(
