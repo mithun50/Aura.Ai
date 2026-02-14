@@ -8,37 +8,35 @@ import 'package:aura_mobile/core/services/app_usage_tracker.dart';
 import 'package:aura_mobile/core/services/daily_summary_scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:aura_mobile/ai/run_anywhere_service.dart';
-import 'dart:isolate';
-import 'dart:ui';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize FlutterDownloader
   await FlutterDownloader.initialize(
-    debug: true, // debug: false to disable console log
-    ignoreSsl: true // option: false to disable working with http links
+    debug: true,
+    ignoreSsl: true,
   );
 
   // Initialize RunAnywhere to sync downloads
   try {
     await RunAnywhere().initialize();
   } catch (e) {
-    print("RunAnywhere initialization failed: $e");
+    debugPrint('RunAnywhere initialization failed: $e');
   }
 
   // Initialize notification system
   final notificationService = NotificationService();
   await notificationService.requestPermissions();
   await notificationService.initialize();
-  
+
   // Initialize app usage tracking
   final appUsageTracker = AppUsageTracker();
   await appUsageTracker.trackAppOpen();
-  
+
   // Initialize daily summary scheduler
   await DailySummaryScheduler.initialize();
-  
+
   runApp(
     const ProviderScope(
       child: AuraApp(),

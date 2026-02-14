@@ -16,11 +16,11 @@ class ConversationAgent implements Agent {
 
   @override
   Stream<String> process(String input, {Map<String, dynamic>? context}) {
-    // Construct system prompt with context if available
-    String systemPrompt = "You are AURA, a private offline AI assistant. Prioritize user memory and privacy.";
-    
+    String systemPrompt =
+        'You are AURA, a private offline AI assistant. Prioritize user memory and privacy.';
+
     if (context != null && context.containsKey('memory')) {
-      systemPrompt += "\n\nRelevant personal memory:\n\${context['memory']}";
+      systemPrompt += "\n\nRelevant personal memory:\n${context['memory']}";
     }
 
     return _llmService.chat(input, systemPrompt: systemPrompt);

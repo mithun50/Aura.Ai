@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:aura_mobile/domain/entities/model_info.dart';
 
@@ -15,7 +16,7 @@ class ModelManager {
       
       return modelFiles;
     } catch (e) {
-      print('Error getting downloaded models: $e');
+      debugPrint('Error getting downloaded models: $e');
       return [];
     }
   }
@@ -38,7 +39,7 @@ class ModelManager {
     // Actually, incomplete downloads are usually smaller. 
     // Let's use a 99% threshold to be safe against minor differences, but ideally it should be exact.
     if (fileSize < (model.sizeBytes * 0.99)) {
-       print('Model ${model.id} corrupted: Expected ${model.sizeBytes}, got $fileSize');
+       debugPrint('Model ${model.id} corrupted: Expected ${model.sizeBytes}, got $fileSize');
        return false;
     }
     
@@ -56,7 +57,7 @@ class ModelManager {
      if (await file.exists()) {
         final fileSize = await file.length();
         if (fileSize < (model.sizeBytes * 0.99)) {
-            print('Deleting corrupt model: ${model.id}');
+            debugPrint('Deleting corrupt model: ${model.id}');
             await file.delete();
             return false;
         }
@@ -81,7 +82,7 @@ class ModelManager {
         await file.delete();
       }
     } catch (e) {
-      print('Error deleting model: $e');
+      debugPrint('Error deleting model: $e');
       rethrow;
     }
   }
@@ -96,7 +97,7 @@ class ModelManager {
       }
       return 0;
     } catch (e) {
-      print('Error getting model size: $e');
+      debugPrint('Error getting model size: $e');
       return 0;
     }
   }

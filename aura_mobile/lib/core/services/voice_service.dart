@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -8,13 +9,17 @@ class VoiceService {
 
   Future<bool> initialize() async {
     // Initialize TTS
-    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setLanguage('en-US');
     await _flutterTts.setPitch(1.0);
-    
+
     // Initialize STT
     return await _speechToText.initialize(
-      onError: (val) => print('onError: \$val'),
-      onStatus: (val) => print('onStatus: \$val'),
+      onError: (val) {
+        if (kDebugMode) debugPrint('STT onError: $val');
+      },
+      onStatus: (val) {
+        if (kDebugMode) debugPrint('STT onStatus: $val');
+      },
     );
   }
 

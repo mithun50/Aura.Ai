@@ -50,8 +50,8 @@ class ModelSelectorScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF1a1a2e).withOpacity(0.8),
-                      const Color(0xFF16213e).withOpacity(0.8),
+                      const Color(0xFF1a1a2e).withValues(alpha: 0.8),
+                      const Color(0xFF16213e).withValues(alpha: 0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -116,10 +116,10 @@ class ModelSelectorScreen extends ConsumerWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFe6cf8e).withOpacity(0.1),
+                    color: const Color(0xFFe6cf8e).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFe6cf8e).withOpacity(0.3),
+                      color: const Color(0xFFe6cf8e).withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(

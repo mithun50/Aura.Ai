@@ -1,12 +1,11 @@
-
 import 'dart:math';
 
+/// Legacy vector store service.
+/// New code should use EmbeddingService.cosineSimilarity() directly.
 class VectorStoreService {
-  /// Calculate Cosine Similarity between two vectors
   double cosineSimilarity(List<double> vectorA, List<double> vectorB) {
-    if (vectorA.length != vectorB.length) {
-      throw Exception("Vector lengths do not match");
-    }
+    if (vectorA.isEmpty || vectorB.isEmpty) return 0.0;
+    if (vectorA.length != vectorB.length) return 0.0;
 
     double dotProduct = 0.0;
     double normA = 0.0;

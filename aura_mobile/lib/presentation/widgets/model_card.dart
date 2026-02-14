@@ -34,12 +34,12 @@ class ModelCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isActive
               ? [
-                  const Color(0xFF1a1a2e).withOpacity(0.9),
-                  const Color(0xFF16213e).withOpacity(0.9),
+                  const Color(0xFF1a1a2e).withValues(alpha:0.9),
+                  const Color(0xFF16213e).withValues(alpha:0.9),
                 ]
               : [
-                  const Color(0xFF0f0f1e).withOpacity(0.7),
-                  const Color(0xFF1a1a2e).withOpacity(0.7),
+                  const Color(0xFF0f0f1e).withValues(alpha:0.7),
+                  const Color(0xFF1a1a2e).withValues(alpha:0.7),
                 ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -54,7 +54,7 @@ class ModelCard extends StatelessWidget {
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: const Color(0xFFe6cf8e).withOpacity(0.3),
+                  color: const Color(0xFFe6cf8e).withValues(alpha:0.3),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),
@@ -90,7 +90,7 @@ class ModelCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFe6cf8e).withOpacity(0.2),
+                      color: const Color(0xFFe6cf8e).withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: const Color(0xFFe6cf8e),
@@ -128,6 +128,37 @@ class ModelCard extends StatelessWidget {
                 _buildSpec(Icons.memory, model.ramRequirement),
                 const SizedBox(width: 16),
                 _buildSpec(Icons.speed, model.speed),
+                if (model.hasThinking) ...[
+                  const SizedBox(width: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7c3aed).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF7c3aed).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.psychology,
+                            color: const Color(0xFF7c3aed).withValues(alpha: 0.9),
+                            size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Thinks',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF7c3aed).withValues(alpha: 0.9),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
 
@@ -137,9 +168,9 @@ class ModelCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [

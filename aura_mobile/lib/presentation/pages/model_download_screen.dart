@@ -177,8 +177,8 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       }
 
     } catch (e, stack) {
-      print('Download Error: $e');
-      print('Stack Trace: $stack');
+      debugPrint('Download Error: $e');
+      debugPrint('Stack Trace: $stack');
       if (mounted) {
         setState(() {
           _error = "Download failed: $e";

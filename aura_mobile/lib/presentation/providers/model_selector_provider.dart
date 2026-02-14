@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aura_mobile/domain/entities/model_info.dart';
 import 'package:aura_mobile/data/datasources/model_manager.dart';
@@ -141,7 +142,7 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
        // 1. Check for active download task
        final taskId = await runAnywhere.getTaskIdForUrl(model.url);
        if (taskId != null) {
-           print('Found active task $taskId for model ${model.id}');
+           debugPrint('Found active task $taskId for model ${model.id}');
            _taskIdToModelId[taskId] = model.id;
            downloadProgress[model.id] = 0.0; // Will be updated by stream
            // We could potentially get exact progress from task if we exposed it, but stream will catch up
@@ -244,13 +245,13 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
         totalStorageUsed: totalStorage,
       );
     } catch (e) {
-      print('Error deleting model: $e');
+      debugPrint('Error deleting model: $e');
     }
   }
 
   Future<void> selectModel(String modelId) async {
     if (!state.isDownloaded(modelId)) {
-      print('Cannot select model that is not downloaded');
+      debugPrint('Cannot select model that is not downloaded');
       return;
     }
 
@@ -268,7 +269,7 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
 
       state = state.copyWith(activeModelId: modelId);
     } catch (e) {
-      print('Error selecting model: $e');
+      debugPrint('Error selecting model: $e');
     }
   }
 

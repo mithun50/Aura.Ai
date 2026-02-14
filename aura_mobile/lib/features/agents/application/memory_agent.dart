@@ -18,26 +18,24 @@ class MemoryAgent implements Agent {
 
   @override
   Stream<String> process(String input, {Map<String, dynamic>? context}) async* {
-    if (input.toLowerCase().contains('save') || input.toLowerCase().contains('remember')) {
-      // Store
-       final memory = Memory(
+    if (input.toLowerCase().contains('save') ||
+        input.toLowerCase().contains('remember')) {
+      final memory = Memory(
         id: const Uuid().v4(),
-        content: input, // In a real app, extract the fact via LLM
+        content: input,
         category: 'general',
         timestamp: DateTime.now(),
       );
       await _memoryRepository.saveMemory(memory);
       yield "I've saved that to your memory.";
     } else {
-      // Retrieve
-      // Simple keyword search for now
       final memories = await _memoryRepository.searchMemories(input);
       if (memories.isEmpty) {
         yield "I couldn't find anything relevant in your memory.";
       } else {
         yield "Here's what I found:\n";
-        for (final m in memories) {
-           yield "- \${m.content}\n";
+        for (final mem in memories) {
+          yield "- ${mem.content}\n";
         }
       }
     }

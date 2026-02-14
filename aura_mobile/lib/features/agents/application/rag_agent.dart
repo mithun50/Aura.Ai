@@ -1,7 +1,10 @@
 import 'package:aura_mobile/features/agents/domain/agent.dart';
+import 'package:aura_mobile/domain/services/document_service.dart';
 
 class RAGAgent implements Agent {
-  // In a real app, inject DocumentRepository and VectorStore
+  final DocumentService _documentService;
+
+  RAGAgent(this._documentService);
 
   @override
   String get name => 'RAGAgent';
@@ -13,11 +16,16 @@ class RAGAgent implements Agent {
 
   @override
   Stream<String> process(String input, {Map<String, dynamic>? context}) async* {
-    yield "Searching your documents...";
-    // Simulate RAG delay
-    await Future.delayed(const Duration(seconds: 1));
-    
-    yield "\n\nI found a relevant document: 'Project_Specs.pdf'.\n";
-    yield "It mentions that the system must be offline-first and use Flutter.";
+    yield 'Searching your documents...';
+
+    final results = await _documentService.retrieveRelevantContext(input);
+    if (results.isEmpty) {
+      yield '\n\nNo relevant information found in your documents.';
+    } else {
+      yield '\n\nRelevant excerpts:\n';
+      for (int i = 0; i < results.length; i++) {
+        yield '\n[${i + 1}] ${results[i]}\n';
+      }
+    }
   }
 }
