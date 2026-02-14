@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Premium AURA Document Archive</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "aura-black": "#0a0a0a",
+                        "aura-card": "#121212",
+                        "aura-gold": "#D4AF37",
+                        "aura-gold-light": "#F3E5AB",
+                        "aura-gold-dark": "#996515",
+                        "aura-gray": "#1f1f1f",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "serif": ["Cinzel", "serif"]
+                    },
+                    backgroundImage: {
+                        'gold-gradient': 'linear-gradient(135deg, #D4AF37 0%, #F3E5AB 50%, #996515 100%)',
+                        'gold-text': 'linear-gradient(to bottom, #F3E5AB, #D4AF37)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #996515; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D4AF37; 
+        }
+        .gold-glow {
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+        }
+        .gold-border-gradient {
+            border: 1px solid transparent;
+            background-image: linear-gradient(#121212, #121212), linear-gradient(135deg, #996515 0%, #D4AF37 50%, #996515 100%);
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+        }.toggle-checkbox:checked {
+            right: 0;
+            border-color: #D4AF37;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #D4AF37;
+        }
+        .text-gold-gradient {
+            background: linear-gradient(to bottom, #F3E5AB, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-aura-black font-display text-gray-200 min-h-screen flex justify-center overflow-hidden relative">
+<div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-aura-gold-dark/10 to-transparent pointer-events-none z-0"></div>
+<div class="absolute bottom-0 right-0 w-64 h-64 bg-aura-gold-dark/5 rounded-full blur-3xl pointer-events-none z-0"></div>
+<div class="relative w-full max-w-md h-full min-h-screen z-10 flex flex-col mx-auto border-x border-aura-gray bg-aura-black shadow-2xl overflow-hidden">
+<div class="h-12 w-full flex items-end justify-between px-6 pb-2 text-xs font-medium text-aura-gold/60 select-none bg-aura-black">
+<span>9:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-icons-outlined text-sm">signal_cellular_alt</span>
+<span class="material-icons-outlined text-sm">wifi</span>
+<span class="material-icons-outlined text-sm">battery_full</span>
+</div>
+</div>
+<header class="px-6 py-6 flex items-center justify-between sticky top-0 z-20 bg-aura-black/90 backdrop-blur-md border-b border-aura-gold/20">
+<div>
+<h1 class="text-2xl font-serif font-bold tracking-tight text-gold-gradient">Digital Archive</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-icons-outlined text-[12px] text-aura-gold">verified_user</span>
+<span class="text-[10px] uppercase tracking-[0.15em] text-aura-gold/70">Secure Vault</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full border border-aura-gold/30 flex items-center justify-center hover:bg-aura-gold/10 transition-colors">
+<span class="material-icons-outlined text-aura-gold">tune</span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto px-6 pb-32 scroll-smooth">
+<section class="mt-8 mb-8">
+<div class="group relative w-full h-44 rounded-xl transition-all duration-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-aura-card border border-dashed border-aura-gold/40 hover:border-aura-gold hover:shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+<div class="absolute inset-0 bg-gradient-to-br from-aura-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative z-10 flex flex-col items-center text-center p-4">
+<div class="w-14 h-14 rounded-full border border-aura-gold/30 bg-aura-gold/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+<span class="material-icons-outlined text-3xl text-aura-gold">add_circle_outline</span>
+</div>
+<h3 class="font-serif font-semibold text-aura-gold-light text-lg">Import Document</h3>
+<p class="text-xs text-gray-400 mt-2 tracking-wide font-light">DRAG &amp; DROP OR TAP TO UPLOAD</p>
+</div>
+</div>
+</section>
+<div class="flex gap-3 mb-8">
+<div class="relative flex-1 group">
+<span class="absolute inset-y-0 left-3 flex items-center text-aura-gold/50 group-focus-within:text-aura-gold transition-colors">
+<span class="material-icons-outlined text-lg">search</span>
+</span>
+<input class="w-full pl-10 pr-4 py-3 bg-aura-card border border-aura-gray rounded-lg text-sm text-aura-gold-light focus:outline-none focus:border-aura-gold/50 focus:ring-1 focus:ring-aura-gold/20 placeholder-gray-600 transition-all font-light" placeholder="Search archive..." type="text"/>
+</div>
+<button class="px-3 py-2 bg-aura-card border border-aura-gray rounded-lg text-aura-gold/70 hover:text-aura-gold hover:border-aura-gold/30 transition-colors">
+<span class="material-icons-outlined text-xl">sort</span>
+</button>
+</div>
+<section>
+<div class="flex items-center justify-between mb-5 border-b border-aura-gray pb-2">
+<h2 class="text-xs font-serif font-semibold uppercase tracking-[0.2em] text-gray-500">Active Knowledge</h2>
+<span class="text-[10px] border border-aura-gold/30 text-aura-gold px-2 py-0.5 rounded backdrop-blur-sm bg-aura-gold/5">3 SELECTED</span>
+</div>
+<div class="space-y-4">
+<div class="relative p-0.5 rounded-xl bg-gradient-to-br from-aura-gray to-black shadow-lg group">
+<div class="absolute inset-0 rounded-xl bg-gradient-to-br from-aura-gold/20 via-transparent to-aura-gold/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div class="relative p-4 rounded-[10px] bg-aura-card flex items-start justify-between gap-3 h-full">
+<div class="flex items-start gap-4 flex-1 min-w-0">
+<div class="w-11 h-11 rounded bg-black border border-aura-gray flex items-center justify-center flex-shrink-0 shadow-inner">
+<span class="material-icons-outlined text-aura-gold-dark text-xl">picture_as_pdf</span>
+</div>
+<div class="min-w-0 flex-1 pt-0.5">
+<h4 class="font-medium text-aura-gold-light truncate font-display">Q3_Financial_Report.pdf</h4>
+<div class="flex items-center gap-3 mt-1.5">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-aura-gold shadow-[0_0_5px_#D4AF37]"></span>
+<span class="text-[10px] uppercase tracking-wider text-aura-gold/80 font-medium">Indexed</span>
+</div>
+<span class="text-[10px] text-gray-600">|</span>
+<span class="text-xs text-gray-500 font-light">2.4 MB</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center h-full pt-1">
+<label class="flex items-center cursor-pointer relative" for="toggle1">
+<input checked="" class="sr-only peer" id="toggle1" type="checkbox"/>
+<div class="w-10 h-5 bg-black rounded-full border border-aura-gray peer-checked:border-aura-gold peer-checked:shadow-[0_0_8px_rgba(212,175,55,0.3)] transition-all duration-300"></div>
+<div class="absolute left-1 top-1 bg-gray-600 w-3 h-3 rounded-full peer-checked:bg-aura-gold peer-checked:translate-x-5 transition-all duration-300 shadow-sm"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="relative p-0.5 rounded-xl bg-gradient-to-br from-aura-gray to-black shadow-lg group">
+<div class="absolute inset-0 rounded-xl bg-gradient-to-br from-aura-gold/20 via-transparent to-aura-gold/5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div class="relative p-4 rounded-[10px] bg-aura-card flex items-start justify-between gap-3 h-full">
+<div class="flex items-start gap-4 flex-1 min-w-0">
+<div class="w-11 h-11 rounded bg-black border border-aura-gray flex items-center justify-center flex-shrink-0 shadow-inner">
+<span class="material-icons-outlined text-aura-gold-dark text-xl">description</span>
+</div>
+<div class="min-w-0 flex-1 pt-0.5">
+<h4 class="font-medium text-aura-gold-light truncate font-display">Project_AURA_Notes.txt</h4>
+<div class="flex items-center gap-3 mt-1.5">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-aura-gold shadow-[0_0_5px_#D4AF37]"></span>
+<span class="text-[10px] uppercase tracking-wider text-aura-gold/80 font-medium">Indexed</span>
+</div>
+<span class="text-[10px] text-gray-600">|</span>
+<span class="text-xs text-gray-500 font-light">14 KB</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center h-full pt-1">
+<label class="flex items-center cursor-pointer relative" for="toggle2">
+<input checked="" class="sr-only peer" id="toggle2" type="checkbox"/>
+<div class="w-10 h-5 bg-black rounded-full border border-aura-gray peer-checked:border-aura-gold peer-checked:shadow-[0_0_8px_rgba(212,175,55,0.3)] transition-all duration-300"></div>
+<div class="absolute left-1 top-1 bg-gray-600 w-3 h-3 rounded-full peer-checked:bg-aura-gold peer-checked:translate-x-5 transition-all duration-300 shadow-sm"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="relative p-0.5 rounded-xl bg-black border border-aura-gray/30 shadow-sm opacity-70 hover:opacity-100 transition-opacity">
+<div class="relative p-4 rounded-[10px] bg-transparent flex items-start justify-between gap-3 h-full">
+<div class="flex items-start gap-4 flex-1 min-w-0">
+<div class="w-11 h-11 rounded bg-aura-gray/20 border border-aura-gray/20 flex items-center justify-center flex-shrink-0 grayscale opacity-50">
+<span class="material-icons-outlined text-gray-500 text-xl">picture_as_pdf</span>
+</div>
+<div class="min-w-0 flex-1 pt-0.5">
+<h4 class="font-medium text-gray-400 truncate font-display">Machine_Learning_v1.pdf</h4>
+<div class="flex items-center gap-3 mt-1.5">
+<div class="flex items-center gap-1">
+<span class="material-icons-outlined text-[12px] text-green-500/70">check</span>
+<span class="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Available</span>
+</div>
+<span class="text-[10px] text-gray-700">|</span>
+<span class="text-xs text-gray-600 font-light">5.8 MB</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center h-full pt-1">
+<label class="flex items-center cursor-pointer relative" for="toggle3">
+<input class="sr-only peer" id="toggle3" type="checkbox"/>
+<div class="w-10 h-5 bg-black rounded-full border border-aura-gray peer-checked:border-aura-gold peer-checked:shadow-[0_0_8px_rgba(212,175,55,0.3)] transition-all duration-300"></div>
+<div class="absolute left-1 top-1 bg-gray-600 w-3 h-3 rounded-full peer-checked:bg-aura-gold peer-checked:translate-x-5 transition-all duration-300 shadow-sm"></div>
+</label>
+</div>
+</div>
+</div>
+<div class="relative p-0.5 rounded-xl bg-black border border-aura-gold/20 shadow-sm">
+<div class="relative p-4 rounded-[10px] bg-aura-card/50 flex items-start justify-between gap-3 h-full">
+<div class="flex items-start gap-4 flex-1 min-w-0">
+<div class="w-11 h-11 rounded bg-aura-gold/5 border border-aura-gold/20 flex items-center justify-center flex-shrink-0">
+<span class="material-icons-outlined text-aura-gold text-xl animate-spin" style="animation-duration: 3s;">sync</span>
+</div>
+<div class="min-w-0 flex-1 pt-0.5">
+<h4 class="font-medium text-aura-gold-light/80 truncate font-display">New_User_Manual_2024.pdf</h4>
+<div class="flex flex-col gap-2 mt-2 w-full pr-4">
+<div class="flex justify-between items-center text-[10px] uppercase tracking-wider text-aura-gold/60 font-medium">
+<span>Processing</span>
+<span>45%</span>
+</div>
+<div class="h-0.5 w-full bg-aura-gray rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-aura-gold-dark to-aura-gold w-[45%] shadow-[0_0_10px_#D4AF37]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="opacity-30 pointer-events-none pt-1">
+<div class="w-10 h-5 bg-black rounded-full border border-aura-gray relative">
+<div class="absolute left-1 top-1 bg-gray-600 w-3 h-3 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="mt-8 mb-6 p-5 rounded-xl bg-gradient-to-r from-aura-card to-aura-black border border-aura-gold/20 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-10">
+<span class="material-icons-outlined text-6xl text-aura-gold">memory</span>
+</div>
+<div class="flex items-center gap-2 mb-3 relative z-10">
+<span class="material-icons-outlined text-aura-gold text-sm">token</span>
+<h3 class="text-xs font-semibold uppercase tracking-widest text-aura-gold-light">Memory Usage</h3>
+</div>
+<div class="w-full bg-black border border-aura-gray rounded-full h-1.5 mb-3 relative z-10">
+<div class="bg-gradient-to-r from-aura-gold-dark via-aura-gold to-aura-gold-light h-1.5 rounded-full shadow-[0_0_10px_rgba(212,175,55,0.5)]" style="width: 35%"></div>
+</div>
+<div class="flex justify-between text-[10px] text-gray-400 font-mono relative z-10">
+<span>USED: 4,096 TOKENS</span>
+<span class="text-aura-gold/60">CAPACITY: 16K</span>
+</div>
+</div>
+</main>
+<nav class="absolute bottom-0 w-full bg-aura-black/95 backdrop-blur-xl border-t border-aura-gold/20 pb-8 pt-3 px-6 z-30">
+<div class="flex justify-between items-center px-2">
+<button class="flex flex-col items-center gap-1.5 p-2 text-gray-500 hover:text-aura-gold transition-colors group">
+<span class="material-icons-outlined text-xl group-hover:scale-110 transition-transform duration-300">chat</span>
+<span class="text-[9px] uppercase tracking-widest opacity-70">Chat</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 p-2 text-aura-gold relative">
+<div class="absolute -top-3 w-8 h-0.5 bg-aura-gold shadow-[0_0_10px_#D4AF37]"></div>
+<span class="material-icons-outlined text-xl text-gold-gradient drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">inventory_2</span>
+<span class="text-[9px] uppercase tracking-widest font-semibold text-aura-gold-light">Archive</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 p-2 text-gray-500 hover:text-aura-gold transition-colors group">
+<span class="material-icons-outlined text-xl group-hover:scale-110 transition-transform duration-300">psychology</span>
+<span class="text-[9px] uppercase tracking-widest opacity-70">Models</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 p-2 text-gray-500 hover:text-aura-gold transition-colors group">
+<span class="material-icons-outlined text-xl group-hover:scale-110 transition-transform duration-300">account_circle</span>
+<span class="text-[9px] uppercase tracking-widest opacity-70">Access</span>
+</button>
+</div>
+</nav>
+</div>
+
+</body></html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Premium AURA Memory Vault</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&amp;family=Montserrat:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "gold-primary": "#D4AF37",
+                "gold-light": "#F4E3A4",
+                "gold-dark": "#AA8C2C",
+                "background-rich": "#050505",
+                "surface-black": "#0F0F0F",
+                "surface-card": "#141414",
+                "text-gold": "#E5C558"
+              },
+              fontFamily: {
+                "display": ["Cinzel", "serif"],
+                "body": ["Montserrat", "sans-serif"]
+              },
+              boxShadow: {
+                'gold-glow': '0 0 15px -3px rgba(212, 175, 55, 0.15)',
+                'gold-border': 'inset 0 0 0 1px rgba(212, 175, 55, 0.3)',
+                'gold-border-hover': 'inset 0 0 0 1px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.2)',
+                'inner-depth': 'inset 0 2px 10px rgba(0,0,0,0.8)'
+              },
+              backgroundImage: {
+                'brushed-metal': 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.02) 100%)',
+                'gold-gradient': 'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%)',
+                'gold-text-gradient': 'linear-gradient(to right, #F4E3A4, #D4AF37, #AA8C2C)'
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        .gold-glow-button {
+            box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.4);
+            background: linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%);
+        }
+        .gold-text-clip {
+            background: linear-gradient(to right, #F4E3A4, #D4AF37, #AA8C2C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .vault-card {
+            background: #0F0F0F;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .vault-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.05), transparent 70%);
+            pointer-events: none;
+        }
+        .glass-panel-luxury {
+            background: rgba(15, 15, 15, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-rich text-white font-body min-h-screen antialiased selection:bg-gold-primary selection:text-black">
+<div class="max-w-md mx-auto min-h-screen relative flex flex-col pb-24 border-x border-white/5 bg-background-rich shadow-2xl">
+<div class="px-6 pt-12 pb-6 flex justify-between items-center bg-background-rich/95 backdrop-blur-md z-30 sticky top-0 border-b border-white/5">
+<div class="flex flex-col">
+<h1 class="text-2xl font-display font-bold tracking-tight text-white uppercase"><span class="gold-text-clip">AURA</span> Vault</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-1.5 h-1.5 rounded-full bg-gold-primary shadow-[0_0_8px_rgba(212,175,55,0.8)]"></span>
+<span class="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">Secure • Local</span>
+</div>
+</div>
+<div class="p-0.5 rounded-full bg-gradient-to-br from-gold-primary/40 to-transparent">
+<div class="p-2 rounded-full bg-black hover:bg-surface-card transition-colors cursor-pointer">
+<span class="material-icons text-gold-primary text-xl">account_circle</span>
+</div>
+</div>
+</div>
+<div class="px-6 mb-8 mt-2 relative z-20">
+<div class="relative group">
+<div class="absolute inset-0 bg-gold-primary/10 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="relative flex items-center bg-surface-black border border-gold-primary/30 rounded-lg shadow-inner-depth transition-colors group-hover:border-gold-primary/60">
+<span class="material-icons text-gold-dark ml-4">search</span>
+<input class="w-full bg-transparent border-none text-gold-light placeholder-gray-600 focus:ring-0 py-4 px-3 text-sm font-medium tracking-wide" placeholder="ACCESS MEMORY VAULT..." type="text"/>
+<button class="p-2 mr-2 rounded text-gold-dark hover:text-gold-light transition-colors">
+<span class="material-icons" style="font-size: 20px;">tune</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex-1 px-6 overflow-y-auto z-10">
+<div class="mb-10">
+<div class="flex justify-between items-end mb-5 border-b border-white/5 pb-2">
+<h2 class="text-sm font-display font-bold text-gold-primary tracking-widest uppercase">Vault Categories</h2>
+<span class="text-[10px] text-gray-500 hover:text-gold-primary cursor-pointer transition-colors uppercase tracking-wider">Manage</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="group relative">
+<div class="absolute -inset-0.5 bg-gradient-to-b from-gold-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 blur-sm"></div>
+<div class="vault-card p-5 rounded-xl h-full flex flex-col justify-between group-hover:scale-[1.02] transition-transform duration-300 shadow-gold-glow">
+<div class="flex justify-between items-start mb-6">
+<div class="text-gold-light opacity-80 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-3xl font-light">business_center</span>
+</div>
+<span class="material-icons text-gray-700 hover:text-gold-primary transition-colors text-lg cursor-pointer">more_horiz</span>
+</div>
+<div>
+<h3 class="font-display font-semibold text-white text-lg mb-1 tracking-wide">Work</h3>
+<p class="text-[10px] text-gold-dark uppercase tracking-wider">342 Secure Entries</p>
+</div>
+<div class="w-full bg-gray-900 h-0.5 mt-4">
+<div class="bg-gradient-to-r from-gold-dark to-gold-primary h-full w-3/4 shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
+</div>
+</div>
+</div>
+<div class="group relative">
+<div class="absolute -inset-0.5 bg-gradient-to-b from-gold-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 blur-sm"></div>
+<div class="vault-card p-5 rounded-xl h-full flex flex-col justify-between group-hover:scale-[1.02] transition-transform duration-300 shadow-gold-glow">
+<div class="flex justify-between items-start mb-6">
+<div class="text-gold-light opacity-80 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-3xl font-light">fingerprint</span>
+</div>
+<span class="material-icons text-gray-700 hover:text-gold-primary transition-colors text-lg cursor-pointer">more_horiz</span>
+</div>
+<div>
+<h3 class="font-display font-semibold text-white text-lg mb-1 tracking-wide">Personal</h3>
+<p class="text-[10px] text-gold-dark uppercase tracking-wider">89 Secure Entries</p>
+</div>
+<div class="w-full bg-gray-900 h-0.5 mt-4">
+<div class="bg-gradient-to-r from-gold-dark to-gold-primary h-full w-1/4 shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
+</div>
+</div>
+</div>
+<div class="group relative">
+<div class="absolute -inset-0.5 bg-gradient-to-b from-gold-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 blur-sm"></div>
+<div class="vault-card p-5 rounded-xl h-full flex flex-col justify-between group-hover:scale-[1.02] transition-transform duration-300 shadow-gold-glow">
+<div class="flex justify-between items-start mb-6">
+<div class="text-gold-light opacity-80 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-3xl font-light">account_balance</span>
+</div>
+<span class="material-icons text-gray-700 hover:text-gold-primary transition-colors text-lg cursor-pointer">more_horiz</span>
+</div>
+<div>
+<h3 class="font-display font-semibold text-white text-lg mb-1 tracking-wide">Financial</h3>
+<p class="text-[10px] text-gold-dark uppercase tracking-wider">12 Secure Entries</p>
+</div>
+<div class="w-full bg-gray-900 h-0.5 mt-4">
+<div class="bg-gradient-to-r from-gold-dark to-gold-primary h-full w-1/12 shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
+</div>
+</div>
+</div>
+<div class="group relative">
+<div class="absolute -inset-0.5 bg-gradient-to-b from-gold-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 blur-sm"></div>
+<div class="vault-card p-5 rounded-xl h-full flex flex-col justify-between group-hover:scale-[1.02] transition-transform duration-300 shadow-gold-glow">
+<div class="flex justify-between items-start mb-6">
+<div class="text-gold-light opacity-80 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-3xl font-light">monitor_heart</span>
+</div>
+<span class="material-icons text-gray-700 hover:text-gold-primary transition-colors text-lg cursor-pointer">more_horiz</span>
+</div>
+<div>
+<h3 class="font-display font-semibold text-white text-lg mb-1 tracking-wide">Vitality</h3>
+<p class="text-[10px] text-gold-dark uppercase tracking-wider">45 Secure Entries</p>
+</div>
+<div class="w-full bg-gray-900 h-0.5 mt-4">
+<div class="bg-gradient-to-r from-gold-dark to-gold-primary h-full w-1/6 shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex justify-between items-end mb-5 border-b border-white/5 pb-2">
+<h2 class="text-sm font-display font-bold text-gold-primary tracking-widest uppercase">Latest Intelligence</h2>
+<span class="text-[10px] text-gray-500 hover:text-gold-primary cursor-pointer transition-colors uppercase tracking-wider">View All</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-gold-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="bg-surface-card border border-white/5 hover:border-gold-primary/20 p-4 rounded-r-lg flex gap-4 items-start transition-all hover:bg-white/[0.02]">
+<div class="mt-1">
+<span class="material-icons text-gold-primary text-sm opacity-70">bolt</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-display font-medium text-white tracking-wide">Project Alpha Deadline</h4>
+<span class="text-[9px] text-gold-dark font-mono uppercase tracking-widest">2h ago</span>
+</div>
+<p class="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                                    Updated requirements for the Q3 deliverable. Note: Check with engineering about the API rate limits before finalizing the doc.
+                                </p>
+<div class="flex gap-2 mt-3">
+<span class="text-[9px] text-gold-primary/60 border border-gold-primary/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">#work</span>
+<span class="text-[9px] text-gold-primary/60 border border-gold-primary/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">#urgent</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-gold-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="bg-surface-card border border-white/5 hover:border-gold-primary/20 p-4 rounded-r-lg flex gap-4 items-start transition-all hover:bg-white/[0.02]">
+<div class="mt-1">
+<span class="material-icons text-gold-primary text-sm opacity-70">flight</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-display font-medium text-white tracking-wide">Passport Renewal</h4>
+<span class="text-[9px] text-gold-dark font-mono uppercase tracking-widest">Yesterday</span>
+</div>
+<p class="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                                    Reminder: Expiry date is coming up in 6 months. Need to schedule appointment at the embassy.
+                                </p>
+<div class="flex gap-2 mt-3">
+<span class="text-[9px] text-gold-primary/60 border border-gold-primary/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">#personal</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative group cursor-pointer">
+<div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-gold-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="bg-surface-card border border-white/5 hover:border-gold-primary/20 p-4 rounded-r-lg flex gap-4 items-start transition-all hover:bg-white/[0.02]">
+<div class="mt-1">
+<span class="material-icons text-gold-primary text-sm opacity-70">notes</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-display font-medium text-white tracking-wide">Q3 Strategy Notes</h4>
+<span class="text-[9px] text-gold-dark font-mono uppercase tracking-widest">2 Days Ago</span>
+</div>
+<p class="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                                    Meeting summary with key stakeholders. Focus shifting towards retention over acquisition for the next quarter.
+                                </p>
+<div class="flex gap-2 mt-3">
+<span class="text-[9px] text-gold-primary/60 border border-gold-primary/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">#work</span>
+<span class="text-[9px] text-gold-primary/60 border border-gold-primary/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">#strategy</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-20"></div>
+</div>
+<div class="absolute bottom-24 right-6 z-30">
+<button class="gold-glow-button group flex items-center justify-center w-14 h-14 rounded-full transition-all hover:scale-110 active:scale-95 border border-white/20">
+<span class="material-icons text-black text-2xl group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+</div>
+<div class="absolute bottom-0 w-full glass-panel-luxury border-t border-gold-primary/20 flex justify-around items-center py-5 px-6 z-20">
+<button class="flex flex-col items-center gap-1.5 text-gold-primary">
+<span class="material-icons text-xl drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">memory</span>
+<span class="text-[9px] font-bold tracking-widest uppercase">Vault</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-gray-600 hover:text-gold-light transition-colors">
+<span class="material-icons text-xl">chat_bubble_outline</span>
+<span class="text-[9px] font-medium tracking-widest uppercase">Chat</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-gray-600 hover:text-gold-light transition-colors">
+<span class="material-icons text-xl">dashboard</span>
+<span class="text-[9px] font-medium tracking-widest uppercase">Apps</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-gray-600 hover:text-gold-light transition-colors">
+<span class="material-icons text-xl">settings</span>
+<span class="text-[9px] font-medium tracking-widest uppercase">Settings</span>
+</button>
+</div>
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden bg-black">
+<div class="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] bg-gold-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-gold-dark/5 rounded-full blur-[100px]"></div>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
+</div>
+</div>
+
+</body></html>

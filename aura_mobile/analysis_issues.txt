@@ -1,0 +1,54 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 67.0.0 (94.0.0 available)
+  analyzer 6.4.1 (10.0.2 available)
+  analyzer_plugin 0.11.3 (0.14.2 available)
+  build 2.4.1 (4.0.4 available)
+  build_config 1.1.2 (1.2.0 available)
+  build_resolvers 2.4.2 (3.0.4 available)
+  build_runner 2.4.13 (2.11.1 available)
+  build_runner_core 7.3.2 (9.3.2 available)
+  characters 1.4.0 (1.4.1 available)
+  custom_lint_core 0.6.3 (0.8.2 available)
+  dart_style 2.3.6 (3.1.5 available)
+  flutter_markdown 0.7.7+1 (discontinued replaced by flutter_markdown_plus)
+  flutter_riverpod 2.6.1 (3.2.1 available)
+  freezed 2.5.2 (3.2.5 available)
+  freezed_annotation 2.4.4 (3.1.0 available)
+  freezer 0.6.1 (discontinued)
+  json_annotation 4.9.0 (4.10.0 available)
+  json_serializable 6.8.0 (6.12.0 available)
+  matcher 0.12.17 (0.12.18 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.16.0 (1.18.1 available)
+  mockito 5.4.4 (5.6.3 available)
+  path_provider_foundation 2.5.1 (2.6.0 available)
+  riverpod 2.6.1 (3.2.1 available)
+  riverpod_analyzer_utils 0.5.1 (0.5.10 available)
+  riverpod_annotation 2.6.1 (4.0.2 available)
+  riverpod_generator 2.4.0 (4.0.3 available)
+  shelf_web_socket 2.0.1 (3.0.0 available)
+  source_gen 1.5.0 (4.2.0 available)
+  source_helper 1.3.5 (1.3.10 available)
+  test_api 0.7.6 (0.7.9 available)
+  url_launcher_ios 6.3.6 (6.4.0 available)
+  url_launcher_web 2.4.1 (2.4.2 available)
+Got dependencies!
+2 packages are discontinued.
+31 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing aura_mobile...                                        
+
+   info - Don't invoke 'print' in production code - lib\core\services\voice_service.dart:16:25 - avoid_print
+   info - Don't invoke 'print' in production code - lib\core\services\voice_service.dart:17:26 - avoid_print
+warning - The value of the local variable 'm' isn't used - lib\features\agents\application\memory_agent.dart:39:20 - unused_local_variable
+   info - The 'if' statement could be replaced by a null-aware assignment - lib\features\orchestrator\orchestrator.dart:23:5 - prefer_conditional_assignment
+  error - The await expression can only be used in an async function - test\widget_test.dart:14:5 - await_in_wrong_context
+  error - Undefined name 'tester' - test\widget_test.dart:14:11 - undefined_identifier
+  error - The await expression can only be used in an async function - test\widget_test.dart:15:5 - await_in_wrong_context
+  error - Undefined name 'tester' - test\widget_test.dart:15:11 - undefined_identifier
+  error - Expected a method, getter, setter or operator declaration - test\widget_test.dart:20:4 - expected_executable
+  error - Unexpected text ';' - test\widget_test.dart:20:5 - unexpected_token
+  error - Expected a method, getter, setter or operator declaration - test\widget_test.dart:21:1 - expected_executable
+
+11 issues found. (ran in 2.5s)

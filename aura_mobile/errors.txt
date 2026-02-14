@@ -1,0 +1,50 @@
+﻿
+  flutter : 
+  
+lib/ai/run_anywhere_service.dart:96:21: 
+> Error: Too few positional arguments: 
+1 
+  required, 0 given.
+  At line:1 char:1
+      + CategoryInfo          : 
+NotSpecif 
+     ied: (lib/ai/run_anyw...uired, 0 
+gi  
+>   ven.:String) [], RemoteException
+>     + FullyQualifiedErrorId : 
+NativeCom 
+>    mandError
+   
+        _llama = Llama(modelPath: 
+    ^^^^^
+  
+lib/ai/run_anywhere_service.dart:121:22:
+>  Error: The method 'prompt' isn't 
+  defined for the type 'Llama'.
+   - 'Llama' is from 
+        yield* 
+_llama!.prompt(fullPrompt);
+                       ^^^^^^
+> Target kernel_snapshot_program 
+failed: 
+> Exception
+  
+  
+> FAILURE: Build failed with an 
+exception.
+  
+  * What went wrong:
+> Execution failed for task 
+  ':app:compileFlutterBuildRelease'.
+  > Process 'command 
+  https://help.gradle.org.
+  
+> BUILD FAILED in 19s
+  Running Gradle task 
+'assembleRelease'...                    
+       20.1s
+> Gradle task assembleRelease failed 
+with 
+  exit code 1
+
+
