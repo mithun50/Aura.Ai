@@ -1,6 +1,7 @@
 import 'package:aura_mobile/domain/services/document_service.dart';
 import 'package:aura_mobile/domain/services/memory_service.dart';
 import 'package:aura_mobile/domain/services/web_search_service.dart';
+import 'package:aura_mobile/core/services/sms_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final contextBuilderServiceProvider =
@@ -8,15 +9,17 @@ final contextBuilderServiceProvider =
           ref.read(memoryServiceProvider),
           ref.read(documentServiceProvider),
           ref.read(webSearchServiceProvider),
+          ref.read(smsServiceProvider),
         ));
 
 class ContextBuilderService {
   final MemoryService _memoryService;
   final DocumentService _documentService;
   final WebSearchService _webSearchService;
+  final SmsService _smsService;
 
   ContextBuilderService(
-      this._memoryService, this._documentService, this._webSearchService);
+      this._memoryService, this._documentService, this._webSearchService, this._smsService);
 
   Future<String> buildPrompt({
     required String userMessage,
@@ -24,6 +27,7 @@ class ContextBuilderService {
     bool includeMemories = true,
     bool includeDocuments = true,
     bool includeWebSearch = false,
+    bool includeSms = false,
   }) async {
     final buffer = StringBuffer();
 
@@ -84,7 +88,19 @@ class ContextBuilderService {
       }
     }
 
-    // 5. Chat History
+    // 5. SMS Context
+    if (includeSms) {
+      try {
+        final messages = await _smsService.searchMessages(userMessage);
+        if (messages.isNotEmpty) {
+          buffer.writeln(_smsService.formatAsContext(messages));
+        }
+      } catch (_) {
+        // SMS retrieval failed — continue
+      }
+    }
+
+    // 6. Chat History
     if (chatHistory.isNotEmpty) {
       final limitedHistory = chatHistory.length > 4
           ? chatHistory.sublist(chatHistory.length - 4)

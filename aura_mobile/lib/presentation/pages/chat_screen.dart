@@ -5,6 +5,7 @@ import 'package:aura_mobile/presentation/providers/chat_provider.dart';
 import 'package:aura_mobile/presentation/providers/model_selector_provider.dart';
 import 'package:aura_mobile/presentation/pages/model_selector_screen.dart';
 import 'package:aura_mobile/domain/services/document_service.dart';
+import 'package:aura_mobile/core/theme/app_theme.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -34,30 +35,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0a0c),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Consumer(
           builder: (context, ref, _) {
             final modelState = ref.watch(modelSelectorProvider);
             final activeModel = modelState.activeModelId != null
-                ? modelState.availableModels.firstWhere(
-                    (m) => m.id == modelState.activeModelId,
-                    orElse: () => modelState.availableModels.first,
-                  )
+                ? modelState.availableModels
+                    .where((m) => m.id == modelState.activeModelId)
+                    .firstOrNull
                 : null;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'AURA Mobile',
-                  style: TextStyle(color: Color(0xFFe6cf8e), fontSize: 18),
+                  'AURA',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (activeModel != null)
                   Text(
                     activeModel.name,
                     style: const TextStyle(
-                      color: Colors.white54,
+                      color: AppTheme.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -65,20 +69,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           },
         ),
-        backgroundColor: const Color(0xFF141418),
+        backgroundColor: AppTheme.sidebar,
         elevation: 0,
         actions: [
-          // Upload PDF button
           IconButton(
-            icon: const Icon(Icons.attach_file, color: Color(0xFFc69c3a)),
-            onPressed: () {
-              ref.read(documentServiceProvider).pickAndProcessDocument();
+            icon: const Icon(Icons.attach_file, color: AppTheme.textSecondary),
+            onPressed: () async {
+              try {
+                final filename = await ref
+                    .read(documentServiceProvider)
+                    .pickAndProcessDocument();
+                if (filename != null && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Uploaded: $filename'),
+                      backgroundColor: AppTheme.accent,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
             },
-            tooltip: 'Upload PDF',
+            tooltip: 'Upload document',
           ),
-          // Model selector
           IconButton(
-            icon: const Icon(Icons.psychology, color: Color(0xFFc69c3a)),
+            icon: const Icon(Icons.psychology, color: AppTheme.textSecondary),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -97,25 +120,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.chat_bubble_outline,
-                            size: 64, color: Colors.white24),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Welcome to AURA\nI am ready to help.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              fontSize: 16),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            size: 24,
+                            color: AppTheme.accent,
+                          ),
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Try: "search Flutter latest news"\n'
-                          '"remember that my meeting is tomorrow at 3 PM"\n'
-                          '"what did I save?"',
+                        const SizedBox(height: 20),
+                        const Text(
+                          'How can I help you today?',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            fontSize: 13,
+                            color: AppTheme.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Ask me anything, search the web,\nor upload a document to analyze.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -123,7 +157,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     itemCount: chatState.messages.length,
                     itemBuilder: (context, index) {
                       final msg = chatState.messages[index];
@@ -132,161 +166,148 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       final thinking = msg['thinking'];
                       final thinkingDone = msg['thinkingDone'] == 'true';
 
-                      return Align(
-                        alignment: isUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          constraints: BoxConstraints(
-                            maxWidth:
-                                MediaQuery.of(context).size.width * 0.85,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Thinking bubble (for models with <think> tags)
-                              if (!isUser &&
-                                  thinking != null &&
-                                  thinking.isNotEmpty)
-                                _ThinkingBubble(
-                                  thinking: thinking,
-                                  isDone: thinkingDone,
-                                ),
-                              // Main message bubble
-                              if (isUser || content.isNotEmpty)
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isUser
-                                        ? const Color(0xFF2a2a30)
-                                        : const Color(0xFF1a1a20),
-                                    borderRadius:
-                                        BorderRadius.circular(12).copyWith(
-                                      bottomRight:
-                                          isUser ? Radius.zero : null,
-                                      bottomLeft:
-                                          !isUser ? Radius.zero : null,
-                                    ),
-                                    border: Border.all(
-                                      color: const Color(0xFFc69c3a)
-                                          .withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: isUser
-                                      ? Text(
-                                          content,
-                                          style: const TextStyle(
-                                              color: Colors.white70),
-                                        )
-                                      : MarkdownBody(
-                                          data: content,
-                                          styleSheet: MarkdownStyleSheet(
-                                            p: const TextStyle(
-                                                color: Colors.white70),
-                                            h1: const TextStyle(
-                                                color: Color(0xFFe6cf8e)),
-                                            h2: const TextStyle(
-                                                color: Color(0xFFe6cf8e)),
-                                            code: const TextStyle(
-                                              color: Color(0xFFc69c3a),
-                                              backgroundColor:
-                                                  Color(0xFF0f0f14),
-                                            ),
-                                            codeblockDecoration:
-                                                BoxDecoration(
-                                              color:
-                                                  const Color(0xFF0f0f14),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            listBullet: const TextStyle(
-                                                color: Colors.white54),
-                                            strong: const TextStyle(
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                ),
-                            ],
-                          ),
-                        ),
+                      if (isUser) {
+                        return _UserBubble(content: content);
+                      }
+
+                      return _AssistantMessage(
+                        content: content,
+                        thinking: thinking,
+                        thinkingDone: thinkingDone,
                       );
                     },
                   ),
           ),
-          if (chatState.isThinking)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.transparent,
-                color: Color(0xFFc69c3a),
-              ),
-            ),
+          if (chatState.isThinking) const _TypingIndicator(),
+          _InputBar(
+            controller: _controller,
+            isListening: chatState.isListening,
+            onSend: (value) {
+              if (value.trim().isNotEmpty) {
+                ref.read(chatProvider.notifier).sendMessage(value);
+                _controller.clear();
+              }
+            },
+            onMicToggle: () {
+              if (chatState.isListening) {
+                ref.read(chatProvider.notifier).stopListening();
+              } else {
+                ref.read(chatProvider.notifier).startListening();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// User message bubble — subtle rounded container
+class _UserBubble extends StatelessWidget {
+  final String content;
+  const _UserBubble({required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+        ),
+        decoration: BoxDecoration(
+          color: AppTheme.userBubble,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          content,
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15),
+        ),
+      ),
+    );
+  }
+}
+
+/// Assistant message — flat, full-width, no border (ChatGPT style)
+class _AssistantMessage extends StatelessWidget {
+  final String content;
+  final String? thinking;
+  final bool thinkingDone;
+
+  const _AssistantMessage({
+    required this.content,
+    this.thinking,
+    required this.thinkingDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Small circular AURA avatar
           Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF141418),
-            child: Row(
+            width: 28,
+            height: 28,
+            margin: const EdgeInsets.only(top: 4, right: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 14,
+              color: AppTheme.accent,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Ask AURA...',
-                      hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.3)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                // Thinking bubble
+                if (thinking != null && thinking!.isNotEmpty)
+                  _ThinkingBubble(
+                    thinking: thinking!,
+                    isDone: thinkingDone,
+                  ),
+                // Main content
+                if (content.isNotEmpty)
+                  MarkdownBody(
+                    data: content,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 15,
+                        height: 1.6,
                       ),
-                      filled: true,
-                      fillColor: const Color(0xFF0a0a0c),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
-                    ),
-                    onSubmitted: (value) {
-                      if (value.trim().isNotEmpty) {
-                        ref
-                            .read(chatProvider.notifier)
-                            .sendMessage(value);
-                        _controller.clear();
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                      chatState.isListening ? Icons.mic_off : Icons.mic,
-                      color: const Color(0xFFc69c3a)),
-                  onPressed: () {
-                    if (chatState.isListening) {
-                      ref.read(chatProvider.notifier).stopListening();
-                    } else {
-                      ref.read(chatProvider.notifier).startListening();
-                    }
-                  },
-                ),
-                Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFe6cf8e), Color(0xFFc69c3a)],
+                      h1: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      h2: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      code: TextStyle(
+                        color: AppTheme.accent,
+                        backgroundColor: AppTheme.sidebar,
+                        fontSize: 13,
+                      ),
+                      codeblockDecoration: BoxDecoration(
+                        color: AppTheme.sidebar,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      listBullet: const TextStyle(color: AppTheme.textSecondary),
+                      strong: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  child: IconButton(
-                    icon:
-                        const Icon(Icons.send, color: Color(0xFF0a0a0c)),
-                    onPressed: () {
-                      if (_controller.text.trim().isNotEmpty) {
-                        ref
-                            .read(chatProvider.notifier)
-                            .sendMessage(_controller.text);
-                        _controller.clear();
-                      }
-                    },
-                  ),
-                ),
               ],
             ),
           ),
@@ -296,7 +317,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-/// Collapsible thinking/reasoning bubble — similar to ChatGPT's "Thought for X seconds"
+/// Collapsible thinking bubble — "Thought for X seconds" style
 class _ThinkingBubble extends StatefulWidget {
   final String thinking;
   final bool isDone;
@@ -324,7 +345,6 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
       parent: _animController,
       curve: Curves.easeInOut,
     );
-    // Auto-expand while thinking is in progress
     if (!widget.isDone) {
       _expanded = true;
       _animController.value = 1.0;
@@ -334,7 +354,6 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
   @override
   void didUpdateWidget(covariant _ThinkingBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Auto-collapse when thinking finishes
     if (widget.isDone && !oldWidget.isDone) {
       setState(() => _expanded = false);
       _animController.reverse();
@@ -359,88 +378,232 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12121a),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFc69c3a).withValues(alpha: 0.15),
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header — tap to toggle
           InkWell(
             onTap: widget.isDone ? _toggle : null,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!widget.isDone) ...[
-                    // Animated thinking indicator
                     SizedBox(
-                      width: 14,
-                      height: 14,
+                      width: 12,
+                      height: 12,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: const Color(0xFFc69c3a).withValues(alpha: 0.7),
+                        strokeWidth: 1.5,
+                        color: AppTheme.textMuted,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Thinking...',
                       style: TextStyle(
-                        color:
-                            const Color(0xFFc69c3a).withValues(alpha: 0.7),
+                        color: AppTheme.textMuted,
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
                   ] else ...[
                     Icon(
-                      Icons.psychology,
+                      _expanded ? Icons.expand_less : Icons.chevron_right,
                       size: 16,
-                      color:
-                          const Color(0xFFc69c3a).withValues(alpha: 0.6),
+                      color: AppTheme.textMuted,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     Text(
                       'Thought process',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: AppTheme.textMuted,
                         fontSize: 13,
+                        fontStyle: FontStyle.italic,
                       ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      _expanded
-                          ? Icons.expand_less
-                          : Icons.expand_more,
-                      size: 18,
-                      color: Colors.white.withValues(alpha: 0.3),
                     ),
                   ],
                 ],
               ),
             ),
           ),
-          // Expandable thinking content
           SizeTransition(
             sizeFactor: _expandAnimation,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Text(
-                widget.thinking,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.35),
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  height: 1.5,
+              padding: const EdgeInsets.only(left: 4, top: 4, bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.sidebar,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  widget.thinking,
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    height: 1.5,
+                  ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Animated typing dots indicator
+class _TypingIndicator extends StatefulWidget {
+  const _TypingIndicator();
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with TickerProviderStateMixin {
+  late final List<AnimationController> _controllers;
+  late final List<Animation<double>> _animations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (i) {
+      return AnimationController(
+        duration: const Duration(milliseconds: 600),
+        vsync: this,
+      );
+    });
+    _animations = _controllers.map((c) {
+      return Tween<double>(begin: 0, end: -6).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      );
+    }).toList();
+
+    for (int i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 180), () {
+        if (mounted) _controllers[i].repeat(reverse: true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 14,
+              color: AppTheme.accent,
+            ),
+          ),
+          Row(
+            children: List.generate(3, (i) {
+              return AnimatedBuilder(
+                animation: _animations[i],
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _animations[i].value),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: AppTheme.textMuted,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Flat input bar with rounded text field
+class _InputBar extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isListening;
+  final void Function(String) onSend;
+  final VoidCallback onMicToggle;
+
+  const _InputBar({
+    required this.controller,
+    required this.isListening,
+    required this.onSend,
+    required this.onMicToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+      color: AppTheme.sidebar,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Message AURA...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: AppTheme.inputBg,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+              ),
+              onSubmitted: onSend,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              isListening ? Icons.mic_off : Icons.mic,
+              color: isListening ? AppTheme.accent : AppTheme.textSecondary,
+            ),
+            onPressed: onMicToggle,
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.accent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+              onPressed: () => onSend(controller.text),
             ),
           ),
         ],

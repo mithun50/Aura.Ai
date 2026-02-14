@@ -2,43 +2,66 @@ import 'dart:io';
 import 'package:aura_mobile/domain/entities/document.dart';
 import 'package:aura_mobile/domain/repositories/document_repository.dart';
 import 'package:aura_mobile/domain/services/embedding_service.dart';
+import 'package:aura_mobile/domain/services/document_parser.dart';
+import 'package:aura_mobile/core/services/permission_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:read_pdf_text/read_pdf_text.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
 import 'package:aura_mobile/data/repositories/document_repository_impl.dart';
 import 'package:flutter/foundation.dart';
 
+final permissionServiceProvider = Provider((ref) => PermissionService());
+
 final documentServiceProvider = Provider((ref) => DocumentService(
       ref.read(documentRepositoryProvider),
       ref.read(embeddingServiceProvider),
+      ref.read(permissionServiceProvider),
     ));
 
 class DocumentService {
   final DocumentRepository _repository;
   final EmbeddingService _embeddingService;
+  final PermissionService _permissionService;
 
-  DocumentService(this._repository, this._embeddingService);
+  DocumentService(this._repository, this._embeddingService, this._permissionService);
 
-  Future<void> pickAndProcessDocument() async {
+  Future<String?> pickAndProcessDocument() async {
+    // Request storage permission before picking files
+    final hasPermission = await _permissionService.requestStoragePermission();
+    if (!hasPermission) {
+      throw Exception('Storage permission is required to upload documents.');
+    }
+
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf'],
+      allowedExtensions: DocumentParserFactory.supportedExtensions,
     );
 
     if (result != null) {
-      File file = File(result.files.single.path!);
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        throw Exception('Could not access the selected file. Please try again.');
+      }
+      File file = File(filePath);
       await processDocument(file);
+      return result.files.single.name;
     }
+    return null;
   }
 
   Future<void> processDocument(File file) async {
+    final extension = p.extension(file.path).replaceFirst('.', '');
+    final parser = DocumentParserFactory.getParser(extension);
+    if (parser == null) {
+      throw Exception('Unsupported file type: .$extension');
+    }
+
     String text = '';
     try {
-      text = await ReadPdfText.getPDFtext(file.path);
+      text = await parser.parse(file);
     } catch (e) {
-      if (kDebugMode) debugPrint('Error reading PDF: $e');
+      if (kDebugMode) debugPrint('Error reading document: $e');
       return;
     }
 
@@ -109,26 +132,40 @@ class DocumentService {
       {int limit = 3}) async {
     final queryEmbedding = _embeddingService.generateEmbedding(query);
     final allChunks = await _repository.getAllChunks();
+    final allDocs = await _repository.getAllDocuments();
+
+    // Build doc name lookup
+    final docNames = <String, String>{};
+    for (final doc in allDocs) {
+      docNames[doc.id] = doc.filename;
+    }
 
     final scoredChunks = allChunks.map((chunk) {
-      if (chunk.embedding == null || chunk.embedding!.isEmpty) {
-        return MapEntry(chunk, -1.0);
+      double score = -1.0;
+      if (chunk.embedding != null && chunk.embedding!.isNotEmpty) {
+        try {
+          score = _embeddingService.cosineSimilarity(queryEmbedding, chunk.embedding!);
+          // Keyword fallback when cosine is below threshold
+          if (score < 0.2) {
+            final keywordScore = _embeddingService.keywordSimilarity(query, chunk.content);
+            score = score > keywordScore ? score : keywordScore;
+          }
+        } catch (e) {
+          score = -1.0;
+        }
       }
-      try {
-        final score =
-            _embeddingService.cosineSimilarity(queryEmbedding, chunk.embedding!);
-        return MapEntry(chunk, score);
-      } catch (e) {
-        return MapEntry(chunk, -1.0);
-      }
+      return MapEntry(chunk, score);
     }).toList();
 
     scoredChunks.sort((a, b) => b.value.compareTo(a.value));
 
     return scoredChunks
         .take(limit)
-        .where((entry) => entry.value > 0.15) // Lower threshold for TF-IDF
-        .map((entry) => entry.key.content)
+        .where((entry) => entry.value > 0.1)
+        .map((entry) {
+          final docName = docNames[entry.key.documentId] ?? 'Unknown';
+          return '[Source: $docName, chunk ${entry.key.chunkIndex + 1}]\n${entry.key.content}';
+        })
         .toList();
   }
 }

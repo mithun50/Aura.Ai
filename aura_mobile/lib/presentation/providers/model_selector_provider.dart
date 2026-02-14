@@ -56,6 +56,7 @@ class ModelSelectorState {
 // Model Selector Notifier
 class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
   final Ref _ref;
+  bool _disposed = false;
 
   StreamSubscription? _downloadSubscription;
   final Map<String, String> _taskIdToModelId = {};
@@ -68,35 +69,41 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
 
   @override
   void dispose() {
+    _disposed = true;
     _downloadSubscription?.cancel();
     super.dispose();
+  }
+
+  void _safeSetState(ModelSelectorState newState) {
+    if (!_disposed) {
+      state = newState;
+    }
   }
 
   void _listenToDownloads() {
      final runAnywhere = _ref.read(runAnywhereProvider);
      _downloadSubscription = runAnywhere.downloadUpdates.listen((update) {
+         if (_disposed) return;
          final modelId = _taskIdToModelId[update.id];
          if (modelId != null) {
              if (update.status == DownloadTaskStatus.running) {
                  final progress = update.progress / 100;
                  final newProgress = Map<String, double>.from(state.downloadProgress);
                  newProgress[modelId] = progress;
-                 state = state.copyWith(downloadProgress: newProgress);
+                 _safeSetState(state.copyWith(downloadProgress: newProgress));
              } else if (update.status == DownloadTaskStatus.complete) {
                  final newProgress = Map<String, double>.from(state.downloadProgress);
                  newProgress.remove(modelId);
-                 
+
                  final newDownloaded = Set<String>.from(state.downloadedModelIds);
                  newDownloaded.add(modelId);
-                 
-                 // Update storage used (we need to await async method? StateNotifier allows async but here we are in sync listener)
-                 // We can trigger async update
+
                  _updateStorageUsed();
 
-                 state = state.copyWith(
+                 _safeSetState(state.copyWith(
                    downloadProgress: newProgress,
                    downloadedModelIds: newDownloaded,
-                 );
+                 ));
 
                  if (state.activeModelId == null) {
                    selectModel(modelId);
@@ -109,10 +116,10 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
                  final newErrors = Map<String, String?>.from(state.downloadErrors);
                  newErrors[modelId] = "Download failed";
 
-                 state = state.copyWith(
+                 _safeSetState(state.copyWith(
                    downloadProgress: newProgress,
                    downloadErrors: newErrors,
-                 );
+                 ));
                  _taskIdToModelId.remove(update.id);
              }
          }
@@ -181,7 +188,11 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
   }
 
   Future<void> downloadModel(String modelId) async {
-    final model = modelCatalog.firstWhere((m) => m.id == modelId);
+    final model = modelCatalog.where((m) => m.id == modelId).firstOrNull;
+    if (model == null) {
+      debugPrint('Model not found: $modelId');
+      return;
+    }
     final modelManager = _ref.read(modelManagerProvider);
     final runAnywhere = _ref.read(runAnywhereProvider);
 

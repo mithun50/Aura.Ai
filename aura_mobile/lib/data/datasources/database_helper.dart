@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -60,6 +60,16 @@ class DatabaseHelper {
         FOREIGN KEY(documentId) REFERENCES documents(id) ON DELETE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE chat_messages(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        thinking TEXT,
+        timestamp INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -74,7 +84,7 @@ class DatabaseHelper {
       // Migration to normalized document schema
       // Drop old table if exists (since schema changed drastically)
       await db.execute('DROP TABLE IF EXISTS documents');
-      
+
       await db.execute('''
         CREATE TABLE documents(
           id TEXT PRIMARY KEY,
@@ -92,6 +102,19 @@ class DatabaseHelper {
           chunkIndex INTEGER,
           embedding TEXT,
           FOREIGN KEY(documentId) REFERENCES documents(id) ON DELETE CASCADE
+        )
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      // Add chat messages table for persistence
+      await db.execute('''
+        CREATE TABLE chat_messages(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          thinking TEXT,
+          timestamp INTEGER NOT NULL
         )
       ''');
     }

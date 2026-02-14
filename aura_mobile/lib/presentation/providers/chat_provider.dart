@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:aura_mobile/domain/services/intent_detection_service.dart';
-import 'package:aura_mobile/domain/services/memory_service.dart';
-import 'package:aura_mobile/domain/services/context_builder_service.dart';
-import 'package:aura_mobile/domain/services/web_search_service.dart';
 import 'package:aura_mobile/core/services/voice_service.dart';
 import 'package:aura_mobile/core/providers/ai_providers.dart';
+import 'package:aura_mobile/domain/entities/chat_message.dart';
+import 'package:aura_mobile/data/repositories/chat_repository_impl.dart';
 
 // Voice Service
 final voiceServiceProvider = Provider((ref) => VoiceService());
@@ -46,12 +44,44 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> _initializeAI() async {
     try {
       state = state.copyWith(isThinking: true);
+
+      // Load persisted chat history
+      await _loadMessages();
+
       final llmService = _ref.read(llmServiceProvider);
       await llmService.initialize();
     } catch (e) {
       if (kDebugMode) debugPrint('Error initializing AI: $e');
     } finally {
       state = state.copyWith(isThinking: false);
+    }
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final repo = _ref.read(chatRepositoryProvider);
+      final messages = await repo.getMessages(limit: 50);
+      if (messages.isNotEmpty) {
+        state = state.copyWith(
+          messages: messages.map((m) => m.toChatMap()).toList(),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error loading chat history: $e');
+    }
+  }
+
+  Future<void> _saveMessage(String role, String content, {String? thinking}) async {
+    try {
+      final repo = _ref.read(chatRepositoryProvider);
+      await repo.saveMessage(ChatMessage(
+        role: role,
+        content: content,
+        thinking: thinking,
+        timestamp: DateTime.now(),
+      ));
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error saving message: $e');
     }
   }
 
@@ -65,93 +95,46 @@ class ChatNotifier extends StateNotifier<ChatState> {
       isThinking: true,
     );
 
+    // Persist user message
+    await _saveMessage('user', text);
+
     // Placeholder for Assistant Response
     state = state.copyWith(
       messages: [...state.messages, {'role': 'assistant', 'content': ''}],
     );
 
     try {
-      final intentService = _ref.read(intentDetectionServiceProvider);
-      final memoryService = _ref.read(memoryServiceProvider);
-      final contextBuilder = _ref.read(contextBuilderServiceProvider);
-      final llmService = _ref.read(llmServiceProvider);
-      final webSearchService = _ref.read(webSearchServiceProvider);
+      // Route everything through the Orchestrator
+      final orchestrator = _ref.read(orchestratorProvider);
+      final stream = orchestrator.processUserRequest(
+        text,
+        chatHistory: _recentHistory(),
+        hasDocuments: true,
+      );
 
-      // 2. Detect Intent
-      final intent = intentService.detectIntent(text, hasDocuments: true);
-
-      if (intent == IntentType.storeMemory) {
-        // --- MEMORY STORE ---
-        final contentToSave = intentService.extractMemoryContent(text);
-        await memoryService.saveMemory(contentToSave);
-        _updateLastMessage("I've saved that to your memory.");
-      } else if (intent == IntentType.webSearch) {
-        // --- WEB SEARCH ---
-        final searchQuery = intentService.extractSearchQuery(text);
-        _updateLastMessage('Searching the web...');
-
-        final results = await webSearchService.search(searchQuery);
-        if (results.isEmpty) {
-          _updateLastMessage(
-              'No results found. You may be offline or the search failed.');
-        } else {
-          // Build context with search results and pass to LLM
-          final fullPrompt = await contextBuilder.buildPrompt(
-            userMessage: text,
-            chatHistory: _recentHistory(),
-            includeMemories: false,
-            includeDocuments: false,
-            includeWebSearch: true,
-          );
-
-          final stream = llmService.chat(
-            text,
-            systemPrompt: fullPrompt,
-            maxTokens: 768,
-          );
-
-          String fullResponse = '';
-          await for (final chunk in stream) {
-            fullResponse += chunk;
-            _updateLastMessage(fullResponse);
-          }
-
-          if (fullResponse.isEmpty) {
-            // Fallback: show raw results if LLM didn't respond
-            final formatted =
-                webSearchService.formatResultsAsContext(results);
-            _updateLastMessage(formatted);
-          }
-        }
-      } else {
-        // --- CHAT / RAG / MEMORY RETRIEVAL ---
-        final fullPrompt = await contextBuilder.buildPrompt(
-          userMessage: text,
-          chatHistory: _recentHistory(),
-          includeMemories:
-              intent == IntentType.retrieveMemory ||
-              intent == IntentType.normalChat,
-          includeDocuments:
-              intent == IntentType.queryDocument ||
-              intent == IntentType.normalChat,
-        );
-
-        final stream = llmService.chat(text, systemPrompt: fullPrompt);
-
-        String fullResponse = '';
-        await for (final chunk in stream) {
-          fullResponse += chunk;
-          _updateLastMessage(fullResponse);
-        }
-
-        if (fullResponse.isEmpty) {
-          _updateLastMessage(
-              'I could not generate a response. Please check if a model is loaded.');
-        }
+      String fullResponse = '';
+      await for (final chunk in stream) {
+        fullResponse = chunk;
+        _updateLastMessage(fullResponse);
       }
+
+      if (fullResponse.isEmpty) {
+        fullResponse =
+            'I could not generate a response. Please check if a model is loaded.';
+        _updateLastMessage(fullResponse);
+      }
+
+      // Persist assistant message
+      final lastMsg = state.messages.last;
+      await _saveMessage(
+        'assistant',
+        lastMsg['content'] ?? fullResponse,
+        thinking: lastMsg['thinking'],
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Error in sendMessage: $e');
       _updateLastMessage('Error: $e');
+      await _saveMessage('assistant', 'Error: $e');
     } finally {
       state = state.copyWith(isThinking: false);
       _isProcessing = false;
@@ -185,13 +168,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
       final match = thinkRegex.firstMatch(rawContent);
 
       if (match != null) {
-        // Thinking complete — extract and separate
         thinking = match.group(1)?.trim() ?? '';
         content = rawContent.replaceAll(thinkRegex, '').trim();
         thinkingDone = 'true';
       } else if (rawContent.contains('<think>') &&
           !rawContent.contains('</think>')) {
-        // Thinking still streaming — no closing tag yet
         final thinkStart = rawContent.indexOf('<think>');
         thinking = rawContent.substring(thinkStart + 7).trim();
         content = rawContent.substring(0, thinkStart).trim();
@@ -206,6 +187,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
       };
       state = state.copyWith(messages: newMessages);
     }
+  }
+
+  Future<void> clearChat() async {
+    try {
+      final repo = _ref.read(chatRepositoryProvider);
+      await repo.clearMessages();
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error clearing chat history: $e');
+    }
+    state = state.copyWith(messages: []);
   }
 
   Future<void> stopListening() async {

@@ -1,10 +1,12 @@
+import 'package:aura_mobile/data/datasources/llm_service.dart';
+import 'package:aura_mobile/domain/services/context_builder_service.dart';
 import 'package:aura_mobile/features/agents/domain/agent.dart';
-import 'package:aura_mobile/domain/services/document_service.dart';
 
 class RAGAgent implements Agent {
-  final DocumentService _documentService;
+  final LLMService _llmService;
+  final ContextBuilderService _contextBuilder;
 
-  RAGAgent(this._documentService);
+  RAGAgent(this._llmService, this._contextBuilder);
 
   @override
   String get name => 'RAGAgent';
@@ -15,17 +17,28 @@ class RAGAgent implements Agent {
   }
 
   @override
-  Stream<String> process(String input, {Map<String, dynamic>? context}) async* {
-    yield 'Searching your documents...';
+  Stream<String> process(
+    String input, {
+    Map<String, dynamic>? context,
+    List<String> chatHistory = const [],
+  }) async* {
+    // Build prompt with document context, pass through LLM for synthesized answer
+    final fullPrompt = await _contextBuilder.buildPrompt(
+      userMessage: input,
+      chatHistory: chatHistory,
+      includeMemories: false,
+      includeDocuments: true,
+    );
 
-    final results = await _documentService.retrieveRelevantContext(input);
-    if (results.isEmpty) {
-      yield '\n\nNo relevant information found in your documents.';
-    } else {
-      yield '\n\nRelevant excerpts:\n';
-      for (int i = 0; i < results.length; i++) {
-        yield '\n[${i + 1}] ${results[i]}\n';
-      }
+    final stream = _llmService.chat(input, systemPrompt: fullPrompt, maxTokens: 768);
+    bool hasOutput = false;
+    await for (final chunk in stream) {
+      hasOutput = true;
+      yield chunk;
+    }
+
+    if (!hasOutput) {
+      yield 'No relevant information found in your documents.';
     }
   }
 }

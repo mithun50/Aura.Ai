@@ -34,7 +34,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
     final List<Map<String, dynamic>> maps = await db.query(
       'memories',
       where: 'content LIKE ?',
-      whereArgs: ['%\$query%'],
+      whereArgs: ['%$query%'],
     );
     return List.generate(maps.length, (i) => MemoryModel.fromJson(maps[i]));
   }

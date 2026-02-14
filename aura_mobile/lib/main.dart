@@ -6,7 +6,7 @@ import 'package:aura_mobile/presentation/pages/model_download_screen.dart';
 import 'package:aura_mobile/core/services/notification_service.dart';
 import 'package:aura_mobile/core/services/app_usage_tracker.dart';
 import 'package:aura_mobile/core/services/daily_summary_scheduler.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:aura_mobile/core/theme/app_theme.dart';
 import 'package:aura_mobile/ai/run_anywhere_service.dart';
 
 void main() async {
@@ -52,14 +52,7 @@ class AuraApp extends StatelessWidget {
     return MaterialApp(
       title: 'AURA Mobile',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0a0a0c),
-        textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme.apply(bodyColor: const Color(0xFFEDEDED)),
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
       home: const ModelDownloadScreen(),
       routes: {
         '/chat': (context) => const ChatScreen(),

@@ -42,25 +42,59 @@ class WebSearchService {
     }
   }
 
-  /// Search DuckDuckGo and return parsed results
-  Future<List<SearchResult>> search(String query, {int maxResults = 5}) async {
+  DateTime? _lastSearchTime;
+
+  /// Search DuckDuckGo and return parsed results with retry and rate limiting
+  Future<List<SearchResult>> search(String query, {int maxResults = 3}) async {
     if (!await isOnline()) return [];
 
-    try {
-      final response = await _dio.get(
-        'https://html.duckduckgo.com/html/',
-        queryParameters: {'q': query},
-        options: Options(
-          responseType: ResponseType.plain,
-          followRedirects: true,
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        return _parseHtmlResults(response.data as String, maxResults);
+    // Rate limiting: minimum 1 second between searches
+    if (_lastSearchTime != null) {
+      final elapsed = DateTime.now().difference(_lastSearchTime!);
+      if (elapsed.inMilliseconds < 1000) {
+        await Future.delayed(Duration(milliseconds: 1000 - elapsed.inMilliseconds));
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('WebSearch error: $e');
+    }
+    _lastSearchTime = DateTime.now();
+
+    // Try with 1 retry and backoff
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await _dio.get(
+          'https://html.duckduckgo.com/html/',
+          queryParameters: {'q': query},
+          options: Options(
+            responseType: ResponseType.plain,
+            followRedirects: true,
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          final body = response.data as String;
+          // Check for captcha/blocking
+          if (body.contains('g-recaptcha') || body.contains('captcha')) {
+            if (kDebugMode) debugPrint('WebSearch: captcha detected, backing off');
+            if (attempt == 0) {
+              await Future.delayed(const Duration(seconds: 3));
+              continue;
+            }
+            return [];
+          }
+          return _parseHtmlResults(body, maxResults);
+        } else if (response.statusCode == 429) {
+          if (kDebugMode) debugPrint('WebSearch: rate limited (429)');
+          if (attempt == 0) {
+            await Future.delayed(const Duration(seconds: 3));
+            continue;
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('WebSearch error (attempt ${attempt + 1}): $e');
+        if (attempt == 0) {
+          await Future.delayed(const Duration(seconds: 2));
+          continue;
+        }
+      }
     }
     return [];
   }
@@ -150,17 +184,23 @@ class WebSearchService {
         .trim();
   }
 
-  /// Format search results as context string for the LLM
+  /// Format search results as compact context string for the LLM.
+  /// Keeps snippets short to avoid hallucination from excessive context.
   String formatResultsAsContext(List<SearchResult> results) {
     if (results.isEmpty) return '';
 
     final buffer = StringBuffer();
-    buffer.writeln('WEB SEARCH RESULTS:');
-    for (int i = 0; i < results.length; i++) {
-      buffer.writeln('[${i + 1}] ${results[i].title}');
-      buffer.writeln('    ${results[i].snippet}');
-      buffer.writeln('    Source: ${results[i].url}');
-      buffer.writeln('');
+    buffer.writeln('WEB SEARCH RESULTS (use these to answer):');
+    final limited = results.take(3).toList();
+    for (int i = 0; i < limited.length; i++) {
+      // Truncate snippet to 200 chars to keep context lean
+      String snippet = limited[i].snippet;
+      if (snippet.length > 200) {
+        snippet = '${snippet.substring(0, 200)}...';
+      }
+      buffer.writeln('[${i + 1}] ${limited[i].title}');
+      buffer.writeln('    $snippet');
+      buffer.writeln('    Source: ${limited[i].url}');
     }
     return buffer.toString();
   }

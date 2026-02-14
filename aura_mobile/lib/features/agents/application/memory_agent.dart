@@ -1,12 +1,10 @@
 import 'package:aura_mobile/features/agents/domain/agent.dart';
-import 'package:aura_mobile/domain/repositories/memory_repository.dart';
-import 'package:aura_mobile/domain/entities/memory.dart';
-import 'package:uuid/uuid.dart';
+import 'package:aura_mobile/domain/services/memory_service.dart';
 
 class MemoryAgent implements Agent {
-  final MemoryRepository _memoryRepository;
+  final MemoryService _memoryService;
 
-  MemoryAgent(this._memoryRepository);
+  MemoryAgent(this._memoryService);
 
   @override
   String get name => 'MemoryAgent';
@@ -17,27 +15,46 @@ class MemoryAgent implements Agent {
   }
 
   @override
-  Stream<String> process(String input, {Map<String, dynamic>? context}) async* {
+  Stream<String> process(
+    String input, {
+    Map<String, dynamic>? context,
+    List<String> chatHistory = const [],
+  }) async* {
     if (input.toLowerCase().contains('save') ||
-        input.toLowerCase().contains('remember')) {
-      final memory = Memory(
-        id: const Uuid().v4(),
-        content: input,
-        category: 'general',
-        timestamp: DateTime.now(),
-      );
-      await _memoryRepository.saveMemory(memory);
+        input.toLowerCase().contains('remember') ||
+        input.toLowerCase().contains('note that') ||
+        input.toLowerCase().contains('memo:')) {
+      final contentToSave = _extractMemoryContent(input);
+      await _memoryService.saveMemory(contentToSave);
       yield "I've saved that to your memory.";
     } else {
-      final memories = await _memoryRepository.searchMemories(input);
+      final memories = await _memoryService.retrieveRelevantMemories(input);
       if (memories.isEmpty) {
         yield "I couldn't find anything relevant in your memory.";
       } else {
         yield "Here's what I found:\n";
         for (final mem in memories) {
-          yield "- ${mem.content}\n";
+          yield "- $mem\n";
         }
       }
     }
+  }
+
+  String _extractMemoryContent(String message) {
+    final lowerMessage = message.toLowerCase();
+    final prefixes = [
+      'remember that',
+      'save this',
+      'note that',
+      'remember:',
+      'memo:',
+      'save:',
+    ];
+    for (final prefix in prefixes) {
+      if (lowerMessage.startsWith(prefix)) {
+        return message.substring(prefix.length).trim();
+      }
+    }
+    return message;
   }
 }

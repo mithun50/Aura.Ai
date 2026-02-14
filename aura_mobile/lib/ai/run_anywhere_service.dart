@@ -26,6 +26,7 @@ class RunAnywhere {
   String? _currentModelPath;
   double? _contextId;
   StreamSubscription? _tokenStreamSubscription;
+  Completer<void>? _loadModelLock;
 
   final _downloadStreamController =
       StreamController<DownloadUpdate>.broadcast();
@@ -171,42 +172,55 @@ class RunAnywhere {
   // ==================== MODEL LOADING ====================
 
   Future<void> loadModel(String modelPath) async {
-    if (!_isInitialized) await initialize();
+    // Mutex: prevent parallel context creation/destruction
+    if (_loadModelLock != null) {
+      await _loadModelLock!.future;
+    }
+    _loadModelLock = Completer<void>();
 
-    String finalPath = modelPath;
+    try {
+      if (!_isInitialized) await initialize();
 
-    if (!File(finalPath).existsSync()) {
-      await Future.delayed(const Duration(seconds: 1));
+      String finalPath = modelPath;
+
       if (!File(finalPath).existsSync()) {
-        throw Exception('Model file not found at $finalPath');
+        await Future.delayed(const Duration(seconds: 1));
+        if (!File(finalPath).existsSync()) {
+          throw Exception('Model file not found at $finalPath');
+        }
       }
-    }
 
-    // Release previous context if any
-    if (_contextId != null) {
-      try {
-        await Fllama.instance()?.releaseContext(_contextId!);
-      } catch (e) {
-        if (kDebugMode) debugPrint('RunAnywhere: Error releasing old context: $e');
+      // Release previous context if any
+      if (_contextId != null) {
+        try {
+          await Fllama.instance()?.releaseContext(_contextId!);
+        } catch (e) {
+          if (kDebugMode) debugPrint('RunAnywhere: Error releasing old context: $e');
+        }
+        _contextId = null;
+        _currentModelPath = null;
       }
-    }
 
-    // Initialize new context
-    if (kDebugMode) debugPrint('RunAnywhere: Loading model from $finalPath');
+      // Initialize new context
+      if (kDebugMode) debugPrint('RunAnywhere: Loading model from $finalPath');
 
-    final result = await Fllama.instance()?.initContext(
-      finalPath,
-      nCtx: 2048,
-      nBatch: 512,
-      emitLoadProgress: true,
-    );
+      final result = await Fllama.instance()?.initContext(
+        finalPath,
+        nCtx: 2048,
+        nBatch: 512,
+        emitLoadProgress: true,
+      );
 
-    if (result != null && result.containsKey('contextId')) {
-      _contextId = (result['contextId'] as num).toDouble();
-      _currentModelPath = finalPath;
-      if (kDebugMode) debugPrint('RunAnywhere: Model loaded, contextId=$_contextId');
-    } else {
-      throw Exception('Failed to initialize model context: $result');
+      if (result != null && result.containsKey('contextId')) {
+        _contextId = (result['contextId'] as num).toDouble();
+        _currentModelPath = finalPath;
+        if (kDebugMode) debugPrint('RunAnywhere: Model loaded, contextId=$_contextId');
+      } else {
+        throw Exception('Failed to initialize model context: $result');
+      }
+    } finally {
+      _loadModelLock!.complete();
+      _loadModelLock = null;
     }
   }
 

@@ -6,7 +6,7 @@ final embeddingServiceProvider = Provider((ref) => EmbeddingService());
 /// Lightweight offline embedding service using TF-IDF bag-of-words.
 /// Generates fixed-dimension vectors for text similarity without ML models.
 class EmbeddingService {
-  static const int _vectorDimension = 256;
+  static const int _vectorDimension = 512;
   static const Set<String> _stopWords = {
     'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
     'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
@@ -78,6 +78,17 @@ class EmbeddingService {
 
     if (normA == 0 || normB == 0) return 0.0;
     return dot / (sqrt(normA) * sqrt(normB));
+  }
+
+  /// Keyword-based similarity fallback when cosine similarity is below threshold
+  double keywordSimilarity(String queryText, String documentText) {
+    final queryTokens = _tokenize(queryText).toSet();
+    final docTokens = _tokenize(documentText).toSet();
+    if (queryTokens.isEmpty || docTokens.isEmpty) return 0.0;
+
+    final intersection = queryTokens.intersection(docTokens).length;
+    final union = queryTokens.union(docTokens).length;
+    return union > 0 ? intersection / union : 0.0;
   }
 
   List<String> _tokenize(String text) {

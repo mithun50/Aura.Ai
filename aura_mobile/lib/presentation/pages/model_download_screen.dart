@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aura_mobile/core/providers/ai_providers.dart';
+import 'package:aura_mobile/core/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -38,30 +39,30 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       // We don't store the URL in task list easily unless we check url property.
       // But let's assume the last one is ours or check filename?
       // For now, take the last one.
-      final task = tasks.last; 
-      
+      final task = tasks.last;
+
       if (task.status == DownloadTaskStatus.complete) {
           // Verify file exists
           final docsDir = await getApplicationDocumentsDirectory();
           final file = File('${docsDir.path}/$_modelFileName');
           if (await file.exists()) {
              _onDownloadComplete();
-             return; 
+             return;
           } else {
              // Zombie task? Cancel it
              await FlutterDownloader.remove(taskId: task.taskId, shouldDeleteContent: true);
           }
       }
 
-      if (task.status == DownloadTaskStatus.running || 
+      if (task.status == DownloadTaskStatus.running ||
           task.status == DownloadTaskStatus.enqueued ||
           task.status == DownloadTaskStatus.paused) {
-        
+
         setState(() {
            _taskId = task.taskId;
            _isDownloading = true;
-           _statusMessage = task.status == DownloadTaskStatus.running 
-               ? "Resuming download... ${task.progress}%" 
+           _statusMessage = task.status == DownloadTaskStatus.running
+               ? "Resuming download... ${task.progress}%"
                : "Download Queued...";
            _progress = task.progress / 100;
         });
@@ -93,7 +94,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         _statusMessage = "Download paused";
                       }
                   });
-                  
+
                   if (update.status == DownloadTaskStatus.complete) {
                       _onDownloadComplete();
                   } else if (update.status == DownloadTaskStatus.failed) {
@@ -120,7 +121,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
         // After download, initialize the chat with this model
         final llmService = ref.read(llmServiceProvider);
         await llmService.loadModel(modelPath);
-        
+
         // Navigate to Chat Screen
         if (mounted) {
           Navigator.of(context).pushReplacementNamed('/chat');
@@ -144,25 +145,25 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     try {
       final docsDir = await getApplicationDocumentsDirectory();
       final modelPath = '${docsDir.path}/$_modelFileName';
-      
+
       // Ensure directory exists
       final modelDir = Directory(docsDir.path);
       if (!await modelDir.exists()) {
         await modelDir.create(recursive: true);
       }
-      
-      // Check if file exists and delete it to force fresh download if requested 
+
+      // Check if file exists and delete it to force fresh download if requested
       // (or let downloader resume. here we will rely on downloader, but maybe we should warn?)
       // For now, we trust flow. But let's verify path.
       final file = File(modelPath);
       if (await file.exists()) {
-         // Optionally check size? 
+         // Optionally check size?
          // For now, let's just proceed. FlutterDownloader handles resumption.
       }
 
       // Use RunAnywhere to handle download logic including deduplication
       final runAnywhere = ref.read(runAnywhereProvider);
-      
+
       final taskId = await runAnywhere.downloadModel(
         _modelUrl,
         modelPath,
@@ -191,19 +192,19 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0a0c),
+      backgroundColor: AppTheme.background,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.download_for_offline, size: 80, color: Color(0xFFe6cf8e)),
+              const Icon(Icons.download_for_offline, size: 80, color: AppTheme.accent),
               const SizedBox(height: 24),
               Text(
                 'Setup AI Brain',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -213,7 +214,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                 'To run offline, AURA needs to download a small AI model (~250MB). This happens only once.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
-                  color: Colors.white70,
+                  color: AppTheme.textSecondary,
                   fontSize: 16,
                 ),
               ),
@@ -221,15 +222,15 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
               if (_isDownloading) ...[
                 LinearProgressIndicator(
                   value: _progress,
-                  backgroundColor: const Color(0xFF1a1a20),
-                  color: const Color(0xFFc69c3a),
+                  backgroundColor: AppTheme.surface,
+                  color: AppTheme.accent,
                   minHeight: 8,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   _statusMessage ?? 'Preparing...',
-                  style: const TextStyle(color: Colors.white54),
+                  style: const TextStyle(color: AppTheme.textMuted),
                 ),
                 const SizedBox(height: 24),
                 TextButton(
@@ -244,25 +245,25 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       _progress = 0;
                     });
                   },
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                  child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1a1a20),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.white54, size: 20),
+                      const Icon(Icons.info_outline, color: AppTheme.textMuted, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'You can close the app. Download continues in background.',
                           style: GoogleFonts.inter(
-                            color: Colors.white70,
+                            color: AppTheme.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -277,14 +278,14 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     child: Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent),
+                      style: const TextStyle(color: AppTheme.error),
                     ),
                   ),
                 ElevatedButton(
                   onPressed: _startDownload,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFc69c3a),
-                    foregroundColor: const Color(0xFF0a0a0c),
+                    backgroundColor: AppTheme.accent,
+                    foregroundColor: AppTheme.background,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

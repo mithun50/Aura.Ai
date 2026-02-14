@@ -23,7 +23,9 @@ class ModelManager {
 
   /// Check if a specific model is downloaded and intact
   Future<bool> isModelDownloaded(String modelId) async {
-    final model = modelCatalog.firstWhere((m) => m.id == modelId);
+    final model = getModelById(modelId);
+    if (model == null) return false;
+
     final docsDir = await getApplicationDocumentsDirectory();
     final modelPath = '${docsDir.path}/${model.fileName}';
     final file = File(modelPath);
@@ -33,27 +35,23 @@ class ModelManager {
     }
 
     final fileSize = await file.length();
-    // Allow 1% variance or just check if it's at least the expected size?
-    // Given HTTP downloads can sometimes be slightly different due to compression or metadata, 
-    // but GGUF should be exact. Let's check if it's AT LEAST the expected size.
-    // Actually, incomplete downloads are usually smaller. 
-    // Let's use a 99% threshold to be safe against minor differences, but ideally it should be exact.
     if (fileSize < (model.sizeBytes * 0.99)) {
        debugPrint('Model ${model.id} corrupted: Expected ${model.sizeBytes}, got $fileSize');
        return false;
     }
-    
+
     return true;
   }
 
   /// Verify model integrity and delete if corrupt
   Future<bool> verifyAndCleanupModel(String modelId) async {
-     // If file exists but isModelDownloaded returns false (due to size check), delete it.
-     final model = modelCatalog.firstWhere((m) => m.id == modelId);
+     final model = getModelById(modelId);
+     if (model == null) return false;
+
      final docsDir = await getApplicationDocumentsDirectory();
      final modelPath = '${docsDir.path}/${model.fileName}';
      final file = File(modelPath);
-     
+
      if (await file.exists()) {
         final fileSize = await file.length();
         if (fileSize < (model.sizeBytes * 0.99)) {
@@ -68,7 +66,10 @@ class ModelManager {
 
   /// Get model file path
   Future<String> getModelPath(String modelId) async {
-    final model = modelCatalog.firstWhere((m) => m.id == modelId);
+    final model = getModelById(modelId);
+    if (model == null) {
+      throw Exception('Model not found: $modelId');
+    }
     final docsDir = await getApplicationDocumentsDirectory();
     return '${docsDir.path}/${model.fileName}';
   }
