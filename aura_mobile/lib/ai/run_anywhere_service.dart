@@ -3,8 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import 'package:fllama/fllama.dart';
-import 'package:fllama/fllama_type.dart';
+import 'package:llm_llamacpp/llm_llamacpp.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 
 class DownloadUpdate {
@@ -24,8 +23,8 @@ class RunAnywhere {
 
   bool _isInitialized = false;
   String? _currentModelPath;
-  double? _contextId;
-  StreamSubscription? _tokenStreamSubscription;
+  LlamaCppChatRepository? _chatRepo;
+  StreamSubscription? _chatStreamSubscription;
   Completer<void>? _loadModelLock;
   bool _stopRequested = false;
   bool _isGenerating = false;
@@ -38,14 +37,14 @@ class RunAnywhere {
   final ReceivePort _port = ReceivePort();
 
   /// Whether a model is currently loaded and ready for inference
-  bool get isModelLoaded => _currentModelPath != null && _contextId != null;
+  bool get isModelLoaded => _currentModelPath != null && _chatRepo != null;
   bool get isGenerating => _isGenerating;
   String? get currentModelPath => _currentModelPath;
 
   /// Stop the current generation
   void stopGeneration() {
     _stopRequested = true;
-    _tokenStreamSubscription?.cancel();
+    _chatStreamSubscription?.cancel();
     _isGenerating = false;
     if (kDebugMode) debugPrint('RunAnywhere: Stop generation requested');
   }
@@ -180,10 +179,10 @@ class RunAnywhere {
     }
   }
 
-  // ==================== MODEL LOADING ====================
+  // ==================== MODEL LOADING (llm_llamacpp) ====================
 
   Future<void> loadModel(String modelPath) async {
-    // Mutex: prevent parallel context creation/destruction
+    // Mutex: prevent parallel model loading
     if (_loadModelLock != null) {
       await _loadModelLock!.future;
     }
@@ -201,45 +200,42 @@ class RunAnywhere {
         }
       }
 
-      // Release previous context if any
-      if (_contextId != null) {
+      // Dispose previous repo if any
+      if (_chatRepo != null) {
         try {
-          await Fllama.instance()?.releaseContext(_contextId!);
+          _chatRepo!.dispose();
         } catch (e) {
-          if (kDebugMode) debugPrint('RunAnywhere: Error releasing old context: $e');
+          if (kDebugMode) debugPrint('RunAnywhere: Error disposing old repo: $e');
         }
-        _contextId = null;
+        _chatRepo = null;
         _currentModelPath = null;
       }
 
-      // Initialize new context
       if (kDebugMode) debugPrint('RunAnywhere: Loading model from $finalPath');
 
-      final result = await Fllama.instance()?.initContext(
-        finalPath,
-        nCtx: 2048,
-        nBatch: 512,
-        emitLoadProgress: true,
+      _chatRepo = LlamaCppChatRepository(
+        contextSize: 2048,
+        batchSize: 512,
       );
 
-      if (result != null && result.containsKey('contextId')) {
-        _contextId = (result['contextId'] as num).toDouble();
-        _currentModelPath = finalPath;
-        if (kDebugMode) debugPrint('RunAnywhere: Model loaded, contextId=$_contextId');
-      } else {
-        throw Exception('Failed to initialize model context: $result');
-      }
+      await _chatRepo!.loadModel(finalPath);
+      _currentModelPath = finalPath;
+
+      if (kDebugMode) debugPrint('RunAnywhere: Model loaded successfully');
+    } catch (e) {
+      _chatRepo?.dispose();
+      _chatRepo = null;
+      _currentModelPath = null;
+      rethrow;
     } finally {
       _loadModelLock!.complete();
       _loadModelLock = null;
     }
   }
 
-  // ==================== CHAT INFERENCE (FCllama API) ====================
+  // ==================== CHAT INFERENCE (llm_llamacpp) ====================
 
-  /// Chat with the model using FCllama's getFormattedChat + completion API.
-  /// Returns a stream of token strings.
-  /// Special tokens to filter from model output
+  /// Special tokens to filter from model output (safety net)
   static const _specialTokens = [
     '<|im_start|>', '<|im_end|>', '<|endoftext|>', '</s>',
     '<|im_start|>assistant', '<|im_start|>user', '<|im_start|>system',
@@ -253,124 +249,83 @@ class RunAnywhere {
     double temperature = 0.7,
     int contextSize = 2048,
   }) {
-    if (_contextId == null || _currentModelPath == null) {
+    if (_chatRepo == null || _currentModelPath == null) {
       return Stream.error(Exception('No model loaded. Please select a model first.'));
     }
 
     _stopRequested = false;
     _isGenerating = true;
     final controller = StreamController<String>();
-    final contextId = _contextId!;
 
-    // Build chat messages using RoleContent
-    final messages = <RoleContent>[
+    final messages = <LLMMessage>[
       if (systemPrompt != null && systemPrompt.isNotEmpty)
-        RoleContent(role: 'system', content: systemPrompt),
-      RoleContent(role: 'user', content: prompt),
+        LLMMessage(role: LLMRole.system, content: systemPrompt),
+      LLMMessage(role: LLMRole.user, content: prompt),
     ];
 
-    // Cancel any previous token stream listener
-    _tokenStreamSubscription?.cancel();
+    _chatStreamSubscription?.cancel();
 
-    String accumulated = '';
+    try {
+      final stream = _chatRepo!.streamChatWithGenerationOptions(
+        'aura',
+        messages: messages,
+        generationOptions: GenerationOptions(
+          temperature: temperature,
+          maxTokens: maxTokens,
+          topP: 0.9,
+          repeatPenalty: 1.1,
+        ),
+      );
 
-    // Listen for tokens from the event stream
-    _tokenStreamSubscription =
-        Fllama.instance()?.onTokenStream?.listen((data) {
-      if (_stopRequested) {
-        _tokenStreamSubscription?.cancel();
-        _isGenerating = false;
-        if (!controller.isClosed) controller.close();
-        return;
-      }
+      _chatStreamSubscription = stream.listen(
+        (chunk) {
+          if (_stopRequested) {
+            _chatStreamSubscription?.cancel();
+            _isGenerating = false;
+            if (!controller.isClosed) controller.close();
+            return;
+          }
 
-      final function = data['function'];
-      if (function == 'completion') {
-        final result = data['result'];
-        if (result is Map && result.containsKey('token')) {
-          final token = result['token']?.toString() ?? '';
+          final token = chunk.message?.content ?? '';
           if (token.isNotEmpty && !controller.isClosed) {
-            accumulated += token;
-            // Filter special tokens from accumulated output
-            String cleaned = accumulated;
+            // Filter special tokens as safety net
+            String cleaned = token;
             for (final special in _specialTokens) {
               cleaned = cleaned.replaceAll(special, '');
             }
-            // Only emit if there's actual content
-            if (cleaned.trim().isNotEmpty || accumulated.contains('<think>')) {
-              controller.add(token);
+            if (cleaned.isNotEmpty) {
+              controller.add(cleaned);
             }
           }
-        }
-      }
-    });
-
-    // Format chat and run completion
-    _runCompletion(
-      contextId: contextId,
-      messages: messages,
-      maxTokens: maxTokens,
-      temperature: temperature,
-    ).then((_) {
-      _tokenStreamSubscription?.cancel();
+        },
+        onDone: () {
+          _isGenerating = false;
+          if (!controller.isClosed) controller.close();
+        },
+        onError: (e) {
+          _isGenerating = false;
+          if (!controller.isClosed) {
+            controller.addError(e);
+            controller.close();
+          }
+        },
+      );
+    } catch (e) {
       _isGenerating = false;
-      if (!controller.isClosed) controller.close();
-    }).catchError((e) {
-      _tokenStreamSubscription?.cancel();
-      _isGenerating = false;
-      if (!controller.isClosed) {
-        controller.addError(e);
-        controller.close();
-      }
-    });
+      controller.addError(e);
+      controller.close();
+    }
 
     return controller.stream;
-  }
-
-  /// Format messages into ChatML template (works with all GGUF models).
-  /// Bypasses getFormattedChat which has a Java casting bug.
-  String _formatChatML(List<RoleContent> messages) {
-    final buffer = StringBuffer();
-    for (final msg in messages) {
-      buffer.write('<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n');
-    }
-    buffer.write('<|im_start|>assistant\n');
-    return buffer.toString();
-  }
-
-  Future<void> _runCompletion({
-    required double contextId,
-    required List<RoleContent> messages,
-    required int maxTokens,
-    required double temperature,
-  }) async {
-    // Format messages using ChatML template (manual, avoids native bug)
-    final formattedPrompt = _formatChatML(messages);
-
-    // Run completion with realtime token emission
-    await Fllama.instance()?.completion(
-      contextId,
-      prompt: formattedPrompt,
-      temperature: temperature,
-      nPredict: maxTokens,
-      topP: 0.9,
-      penaltyRepeat: 1.1,
-      penaltyFreq: 0.0,
-      penaltyPresent: 0.0,
-      emitRealtimeCompletion: true,
-      stop: ['<|im_end|>', '<|endoftext|>', '</s>'],
-    );
   }
 
   // ==================== CLEANUP ====================
 
   void dispose() {
-    _tokenStreamSubscription?.cancel();
-    if (_contextId != null) {
-      Fllama.instance()?.releaseContext(_contextId!);
-    }
+    _chatStreamSubscription?.cancel();
+    _chatRepo?.dispose();
+    _chatRepo = null;
     _currentModelPath = null;
-    _contextId = null;
     _downloadStreamController.close();
   }
 }
