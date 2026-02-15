@@ -1,12 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:telephony/telephony.dart';
 import 'package:aura_mobile/core/services/permission_service.dart';
 
 final smsServiceProvider = Provider((ref) => SmsService());
 
+/// Simple SMS message model (replaces telephony package dependency)
+class SmsMessage {
+  final String? address;
+  final String? body;
+  final int? date;
+
+  SmsMessage({this.address, this.body, this.date});
+}
+
+/// SMS reading service using platform MethodChannel.
+/// Replaces the telephony package which is incompatible with AGP 8+.
 class SmsService {
-  final Telephony _telephony = Telephony.instance;
+  static const _channel = MethodChannel('com.aura.mobile/sms');
   final PermissionService _permissionService = PermissionService();
 
   /// Read recent SMS messages
@@ -15,12 +26,16 @@ class SmsService {
       final hasPermission = await _permissionService.requestSmsPermission();
       if (!hasPermission) return [];
 
-      final messages = await _telephony.getInboxSms(
-        columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE],
-        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
+      final List<dynamic> result = await _channel.invokeMethod(
+        'getMessages',
+        {'count': count},
       );
 
-      return messages.take(count).toList();
+      return result.map((m) => SmsMessage(
+        address: m['address'] as String?,
+        body: m['body'] as String?,
+        date: m['date'] as int?,
+      )).toList();
     } catch (e) {
       if (kDebugMode) debugPrint('Error reading SMS: $e');
       return [];
@@ -33,16 +48,16 @@ class SmsService {
       final hasPermission = await _permissionService.hasSmsPermission();
       if (!hasPermission) return [];
 
-      final messages = await _telephony.getInboxSms(
-        columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE],
-        filter: SmsFilter.where(SmsColumn.ADDRESS)
-            .like('%$query%')
-            .or(SmsColumn.BODY)
-            .like('%$query%'),
-        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)],
+      final List<dynamic> result = await _channel.invokeMethod(
+        'searchMessages',
+        {'query': query, 'limit': limit},
       );
 
-      return messages.take(limit).toList();
+      return result.map((m) => SmsMessage(
+        address: m['address'] as String?,
+        body: m['body'] as String?,
+        date: m['date'] as int?,
+      )).toList();
     } catch (e) {
       if (kDebugMode) debugPrint('Error searching SMS: $e');
       return [];
