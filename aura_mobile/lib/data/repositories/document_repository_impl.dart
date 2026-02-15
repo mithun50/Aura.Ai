@@ -77,7 +77,9 @@ class DocumentRepositoryImpl implements DocumentRepository {
         content: maps[i]['content'],
         chunkIndex: maps[i]['chunkIndex'],
         embedding: maps[i]['embedding'] != null
-            ? (jsonDecode(maps[i]['embedding']) as List).cast<double>()
+            ? (jsonDecode(maps[i]['embedding']) as List)
+                .map((e) => (e as num).toDouble())
+                .toList()
             : null,
       );
     });

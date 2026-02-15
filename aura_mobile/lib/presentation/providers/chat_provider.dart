@@ -13,25 +13,37 @@ class ChatState {
   final List<Map<String, String>> messages;
   final bool isListening;
   final bool isThinking;
+  final String? error;
 
   ChatState({
     this.messages = const [],
     this.isThinking = false,
     this.isListening = false,
+    this.error,
   });
 
   ChatState copyWith({
     List<Map<String, String>>? messages,
     bool? isThinking,
     bool? isListening,
+    String? error,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
       isThinking: isThinking ?? this.isThinking,
       isListening: isListening ?? this.isListening,
+      error: error,
     );
   }
 }
+
+/// Special tokens to strip from displayed output
+const _displayFilterTokens = [
+  '<|im_start|>', '<|im_end|>', '<|endoftext|>', '</s>',
+  '<|im_start|>assistant', '<|im_start|>user', '<|im_start|>system',
+  '<s>', '<|begin_of_text|>', '<|end_of_text|>',
+  '<|eot_id|>', '<|start_header_id|>', '<|end_header_id|>',
+];
 
 class ChatNotifier extends StateNotifier<ChatState> {
   final Ref _ref;
@@ -85,14 +97,43 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
+  /// Stop the current generation
+  void stopGeneration() {
+    if (_isProcessing) {
+      try {
+        final llmService = _ref.read(llmServiceProvider);
+        llmService.stopGeneration();
+      } catch (e) {
+        if (kDebugMode) debugPrint('Error stopping generation: $e');
+      }
+    }
+  }
+
   Future<void> sendMessage(String text) async {
     if (_isProcessing) return;
     _isProcessing = true;
+
+    // Check if model is loaded
+    final llmService = _ref.read(llmServiceProvider);
+    if (!llmService.isModelLoaded) {
+      state = state.copyWith(
+        messages: [
+          ...state.messages,
+          {'role': 'user', 'content': text},
+          {'role': 'assistant', 'content': 'No model is loaded. Please go to Model Manager and select a model first.'},
+        ],
+      );
+      await _saveMessage('user', text);
+      await _saveMessage('assistant', 'No model is loaded. Please go to Model Manager and select a model first.');
+      _isProcessing = false;
+      return;
+    }
 
     // 1. Add User Message
     state = state.copyWith(
       messages: [...state.messages, {'role': 'user', 'content': text}],
       isThinking: true,
+      error: null,
     );
 
     // Persist user message
@@ -133,8 +174,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
       );
     } catch (e) {
       if (kDebugMode) debugPrint('Error in sendMessage: $e');
-      _updateLastMessage('Error: $e');
-      await _saveMessage('assistant', 'Error: $e');
+      final errorMsg = 'Something went wrong. Please try again.';
+      _updateLastMessage(errorMsg);
+      await _saveMessage('assistant', errorMsg);
     } finally {
       state = state.copyWith(isThinking: false);
       _isProcessing = false;
@@ -156,28 +198,42 @@ class ChatNotifier extends StateNotifier<ChatState> {
         .toList();
   }
 
+  /// Clean special tokens from the response
+  String _cleanResponse(String text) {
+    String cleaned = text;
+    for (final token in _displayFilterTokens) {
+      cleaned = cleaned.replaceAll(token, '');
+    }
+    // Also clean partial special tokens at the end (during streaming)
+    cleaned = cleaned.replaceAll(RegExp(r'<\|[^>]*$'), '');
+    return cleaned;
+  }
+
   void _updateLastMessage(String rawContent) {
     final newMessages = List<Map<String, String>>.from(state.messages);
     if (newMessages.isNotEmpty && newMessages.last['role'] == 'assistant') {
       String thinking = '';
-      String content = rawContent;
+      String content = _cleanResponse(rawContent);
       String thinkingDone = 'false';
 
       // Parse <think>...</think> blocks
       final thinkRegex = RegExp(r'<think>(.*?)</think>', dotAll: true);
-      final match = thinkRegex.firstMatch(rawContent);
+      final match = thinkRegex.firstMatch(content);
 
       if (match != null) {
         thinking = match.group(1)?.trim() ?? '';
-        content = rawContent.replaceAll(thinkRegex, '').trim();
+        content = content.replaceAll(thinkRegex, '').trim();
         thinkingDone = 'true';
-      } else if (rawContent.contains('<think>') &&
-          !rawContent.contains('</think>')) {
-        final thinkStart = rawContent.indexOf('<think>');
-        thinking = rawContent.substring(thinkStart + 7).trim();
-        content = rawContent.substring(0, thinkStart).trim();
+      } else if (content.contains('<think>') &&
+          !content.contains('</think>')) {
+        final thinkStart = content.indexOf('<think>');
+        thinking = content.substring(thinkStart + 7).trim();
+        content = content.substring(0, thinkStart).trim();
         thinkingDone = 'false';
       }
+
+      // Clean any remaining special tokens from content
+      content = _cleanResponse(content);
 
       newMessages.last = {
         'role': 'assistant',

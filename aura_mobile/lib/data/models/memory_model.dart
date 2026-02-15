@@ -21,7 +21,9 @@ class MemoryModel extends Memory {
       category: json['category'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
       embedding: json['embedding'] != null
-          ? (jsonDecode(json['embedding']) as List).cast<double>()
+          ? (jsonDecode(json['embedding']) as List)
+              .map((e) => (e as num).toDouble())
+              .toList()
           : null,
       eventDate: json['eventDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['eventDate'])

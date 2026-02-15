@@ -18,6 +18,9 @@ class ModelSelectorState {
   final Map<String, double> downloadProgress;
   final Map<String, String?> downloadErrors;
   final int totalStorageUsed;
+  final bool isLoadingModel;
+  final String? loadingModelId;
+  final String? modelLoadError;
 
   ModelSelectorState({
     required this.availableModels,
@@ -26,6 +29,9 @@ class ModelSelectorState {
     this.downloadProgress = const {},
     this.downloadErrors = const {},
     this.totalStorageUsed = 0,
+    this.isLoadingModel = false,
+    this.loadingModelId,
+    this.modelLoadError,
   });
 
   bool isDownloaded(String modelId) => downloadedModelIds.contains(modelId);
@@ -41,6 +47,9 @@ class ModelSelectorState {
     Map<String, double>? downloadProgress,
     Map<String, String?>? downloadErrors,
     int? totalStorageUsed,
+    bool? isLoadingModel,
+    String? loadingModelId,
+    String? modelLoadError,
   }) {
     return ModelSelectorState(
       availableModels: availableModels ?? this.availableModels,
@@ -49,6 +58,9 @@ class ModelSelectorState {
       downloadProgress: downloadProgress ?? this.downloadProgress,
       downloadErrors: downloadErrors ?? this.downloadErrors,
       totalStorageUsed: totalStorageUsed ?? this.totalStorageUsed,
+      isLoadingModel: isLoadingModel ?? this.isLoadingModel,
+      loadingModelId: loadingModelId ?? this.loadingModelId,
+      modelLoadError: modelLoadError,
     );
   }
 }
@@ -265,10 +277,23 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
       return;
     }
 
+    // Show loading state
+    _safeSetState(state.copyWith(
+      isLoadingModel: true,
+      loadingModelId: modelId,
+      modelLoadError: null,
+    ));
+
     try {
       final modelManager = _ref.read(modelManagerProvider);
       final llmService = _ref.read(llmServiceProvider);
       final modelPath = await modelManager.getModelPath(modelId);
+
+      // Verify the file exists and is intact before loading
+      final isValid = await modelManager.verifyAndCleanupModel(modelId);
+      if (!isValid) {
+        throw Exception('Model file is corrupt or missing. Please re-download.');
+      }
 
       // Load the model
       await llmService.loadModel(modelPath);
@@ -277,9 +302,24 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('active_model_id', modelId);
 
-      state = state.copyWith(activeModelId: modelId);
+      _safeSetState(state.copyWith(
+        activeModelId: modelId,
+        isLoadingModel: false,
+        loadingModelId: null,
+        modelLoadError: null,
+      ));
     } catch (e) {
       debugPrint('Error selecting model: $e');
+
+      // If model load failed, mark as corrupt and remove from downloaded
+      final newDownloaded = Set<String>.from(state.downloadedModelIds);
+      // Don't remove from downloaded — might be a temporary error
+
+      _safeSetState(state.copyWith(
+        isLoadingModel: false,
+        loadingModelId: null,
+        modelLoadError: 'Failed to load model: ${e.toString().replaceAll('Exception: ', '')}',
+      ));
     }
   }
 

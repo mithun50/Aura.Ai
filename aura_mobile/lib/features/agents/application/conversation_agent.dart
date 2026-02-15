@@ -22,6 +22,11 @@ class ConversationAgent implements Agent {
     Map<String, dynamic>? context,
     List<String> chatHistory = const [],
   }) async* {
+    if (!_llmService.isModelLoaded) {
+      yield 'No model is loaded. Please go to Model Manager and select a model.';
+      return;
+    }
+
     final fullPrompt = await _contextBuilder.buildPrompt(
       userMessage: input,
       chatHistory: chatHistory,
@@ -29,9 +34,15 @@ class ConversationAgent implements Agent {
       includeDocuments: true,
     );
 
+    String accumulated = '';
     final stream = _llmService.chat(input, systemPrompt: fullPrompt);
     await for (final chunk in stream) {
-      yield chunk;
+      accumulated += chunk;
+      yield accumulated;
+    }
+
+    if (accumulated.isEmpty) {
+      yield 'I could not generate a response. Please check if a model is loaded.';
     }
   }
 }

@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aura_mobile/core/providers/ai_providers.dart';
 import 'package:aura_mobile/core/theme/app_theme.dart';
+import 'package:aura_mobile/domain/entities/model_info.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -33,23 +35,35 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   }
 
   Future<void> _checkExistingDownloads() async {
+    // First, check if ANY model is already downloaded (including from model selector)
+    final docsDir = await getApplicationDocumentsDirectory();
+    final docsFiles = Directory(docsDir.path)
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.gguf'))
+        .toList();
+
+    if (docsFiles.isNotEmpty) {
+      // A model exists, try to load it
+      _onDownloadComplete();
+      return;
+    }
+
+    // Check for active download tasks
     final tasks = await FlutterDownloader.loadTasks();
     if (tasks != null && tasks.isNotEmpty) {
-      // Find task for our model
-      // We don't store the URL in task list easily unless we check url property.
-      // But let's assume the last one is ours or check filename?
-      // For now, take the last one.
-      final task = tasks.last;
+      // Find task matching our model URL
+      final matchingTasks = tasks.where((t) => t.url == _modelUrl).toList();
+      final task = matchingTasks.isNotEmpty ? matchingTasks.last : null;
+
+      if (task == null) return;
 
       if (task.status == DownloadTaskStatus.complete) {
-          // Verify file exists
-          final docsDir = await getApplicationDocumentsDirectory();
           final file = File('${docsDir.path}/$_modelFileName');
           if (await file.exists()) {
              _onDownloadComplete();
              return;
           } else {
-             // Zombie task? Cancel it
              await FlutterDownloader.remove(taskId: task.taskId, shouldDeleteContent: true);
           }
       }
@@ -116,9 +130,46 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
 
       try {
         final docsDir = await getApplicationDocumentsDirectory();
-        final modelPath = '${docsDir.path}/$_modelFileName';
+        final prefs = await SharedPreferences.getInstance();
 
-        // After download, initialize the chat with this model
+        // Try to load the saved active model first
+        String? activeModelId = prefs.getString('active_model_id');
+        String? modelPath;
+
+        if (activeModelId != null) {
+          final activeModel = modelCatalog.where((m) => m.id == activeModelId).firstOrNull;
+          if (activeModel != null) {
+            final path = '${docsDir.path}/${activeModel.fileName}';
+            if (File(path).existsSync()) {
+              modelPath = path;
+            }
+          }
+        }
+
+        // Fallback: find any .gguf file
+        if (modelPath == null) {
+          final ggufFiles = Directory(docsDir.path)
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.gguf'))
+              .toList();
+
+          if (ggufFiles.isNotEmpty) {
+            modelPath = ggufFiles.first.path;
+            // Try to match to catalog and save as active
+            final fileName = modelPath.split('/').last;
+            final matchingModel = modelCatalog.where((m) => m.fileName == fileName).firstOrNull;
+            if (matchingModel != null) {
+              await prefs.setString('active_model_id', matchingModel.id);
+            }
+          }
+        }
+
+        if (modelPath == null) {
+          throw Exception('No model file found');
+        }
+
+        // Load the model
         final llmService = ref.read(llmServiceProvider);
         await llmService.loadModel(modelPath);
 
@@ -127,10 +178,12 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
           Navigator.of(context).pushReplacementNamed('/chat');
         }
       } catch (e) {
-         setState(() {
-            _error = "Initialization failed: $e";
-            _isDownloading = false;
-         });
+         if (mounted) {
+           setState(() {
+              _error = "Initialization failed: $e";
+              _isDownloading = false;
+           });
+         }
       }
   }
 

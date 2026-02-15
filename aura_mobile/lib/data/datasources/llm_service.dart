@@ -5,6 +5,7 @@ abstract class LLMService {
   Future<void> loadModel(String modelPath);
   Stream<String> chat(String prompt, {String? systemPrompt, int maxTokens});
   bool get isModelLoaded;
+  void stopGeneration();
 }
 
 class LLMServiceImpl implements LLMService {
@@ -33,4 +34,9 @@ class LLMServiceImpl implements LLMService {
 
   @override
   bool get isModelLoaded => _runAnywhere.isModelLoaded;
+
+  @override
+  void stopGeneration() {
+    _runAnywhere.stopGeneration();
+  }
 }

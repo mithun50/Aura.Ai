@@ -22,7 +22,11 @@ class RAGAgent implements Agent {
     Map<String, dynamic>? context,
     List<String> chatHistory = const [],
   }) async* {
-    // Build prompt with document context, pass through LLM for synthesized answer
+    if (!_llmService.isModelLoaded) {
+      yield 'No model is loaded. Please go to Model Manager and select a model.';
+      return;
+    }
+
     final fullPrompt = await _contextBuilder.buildPrompt(
       userMessage: input,
       chatHistory: chatHistory,
@@ -30,14 +34,14 @@ class RAGAgent implements Agent {
       includeDocuments: true,
     );
 
+    String accumulated = '';
     final stream = _llmService.chat(input, systemPrompt: fullPrompt, maxTokens: 768);
-    bool hasOutput = false;
     await for (final chunk in stream) {
-      hasOutput = true;
-      yield chunk;
+      accumulated += chunk;
+      yield accumulated;
     }
 
-    if (!hasOutput) {
+    if (accumulated.isEmpty) {
       yield 'No relevant information found in your documents.';
     }
   }

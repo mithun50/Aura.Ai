@@ -27,6 +27,8 @@ class RunAnywhere {
   double? _contextId;
   StreamSubscription? _tokenStreamSubscription;
   Completer<void>? _loadModelLock;
+  bool _stopRequested = false;
+  bool _isGenerating = false;
 
   final _downloadStreamController =
       StreamController<DownloadUpdate>.broadcast();
@@ -37,7 +39,16 @@ class RunAnywhere {
 
   /// Whether a model is currently loaded and ready for inference
   bool get isModelLoaded => _currentModelPath != null && _contextId != null;
+  bool get isGenerating => _isGenerating;
   String? get currentModelPath => _currentModelPath;
+
+  /// Stop the current generation
+  void stopGeneration() {
+    _stopRequested = true;
+    _tokenStreamSubscription?.cancel();
+    _isGenerating = false;
+    if (kDebugMode) debugPrint('RunAnywhere: Stop generation requested');
+  }
 
   // ==================== DOWNLOAD MANAGEMENT ====================
 
@@ -228,6 +239,13 @@ class RunAnywhere {
 
   /// Chat with the model using FCllama's getFormattedChat + completion API.
   /// Returns a stream of token strings.
+  /// Special tokens to filter from model output
+  static const _specialTokens = [
+    '<|im_start|>', '<|im_end|>', '<|endoftext|>', '</s>',
+    '<|im_start|>assistant', '<|im_start|>user', '<|im_start|>system',
+    '<s>', '<|begin_of_text|>', '<|end_of_text|>',
+  ];
+
   Stream<String> chat({
     required String prompt,
     String? systemPrompt,
@@ -236,9 +254,11 @@ class RunAnywhere {
     int contextSize = 2048,
   }) {
     if (_contextId == null || _currentModelPath == null) {
-      return Stream.error(Exception('No model loaded'));
+      return Stream.error(Exception('No model loaded. Please select a model first.'));
     }
 
+    _stopRequested = false;
+    _isGenerating = true;
     final controller = StreamController<String>();
     final contextId = _contextId!;
 
@@ -252,16 +272,34 @@ class RunAnywhere {
     // Cancel any previous token stream listener
     _tokenStreamSubscription?.cancel();
 
+    String accumulated = '';
+
     // Listen for tokens from the event stream
     _tokenStreamSubscription =
         Fllama.instance()?.onTokenStream?.listen((data) {
+      if (_stopRequested) {
+        _tokenStreamSubscription?.cancel();
+        _isGenerating = false;
+        if (!controller.isClosed) controller.close();
+        return;
+      }
+
       final function = data['function'];
       if (function == 'completion') {
         final result = data['result'];
         if (result is Map && result.containsKey('token')) {
           final token = result['token']?.toString() ?? '';
           if (token.isNotEmpty && !controller.isClosed) {
-            controller.add(token);
+            accumulated += token;
+            // Filter special tokens from accumulated output
+            String cleaned = accumulated;
+            for (final special in _specialTokens) {
+              cleaned = cleaned.replaceAll(special, '');
+            }
+            // Only emit if there's actual content
+            if (cleaned.trim().isNotEmpty || accumulated.contains('<think>')) {
+              controller.add(token);
+            }
           }
         }
       }
@@ -275,9 +313,11 @@ class RunAnywhere {
       temperature: temperature,
     ).then((_) {
       _tokenStreamSubscription?.cancel();
+      _isGenerating = false;
       if (!controller.isClosed) controller.close();
     }).catchError((e) {
       _tokenStreamSubscription?.cancel();
+      _isGenerating = false;
       if (!controller.isClosed) {
         controller.addError(e);
         controller.close();
