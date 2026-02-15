@@ -69,18 +69,9 @@ final List<ModelInfo> modelCatalog = [
     speed: 'Fast',
     family: 'Qwen',
   ),
-  ModelInfo(
-    id: 'qwen3-0.6b',
-    name: 'Qwen3 0.6B',
-    description: 'Latest Qwen with reasoning. Shows thinking process.',
-    url: 'https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_K_M.gguf?download=true',
-    fileName: 'qwen3-0.6b.gguf',
-    sizeBytes: 416284672, // ~397MB
-    ramRequirement: '1.5GB',
-    speed: 'Fast',
-    family: 'Qwen',
-    hasThinking: true,
-  ),
+  // Qwen3 0.6B — incompatible with fllama's llama.cpp (predates Qwen3 arch).
+  // Needs llm_llamacpp or similar with llama.cpp >= b5092. Blocked by
+  // llm_llamacpp not shipping pre-built Android libs (build fails).
 
   // ==================== SMALL (500MB - 1GB) ====================
   ModelInfo(
