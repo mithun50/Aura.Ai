@@ -305,6 +305,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 _buildSuggestionChip('What can you do?'),
                 _buildSuggestionChip('Search the web'),
                 _buildSuggestionChip('Remember that...'),
+                _buildSuggestionChip('Read my messages'),
               ],
             ),
           ],
@@ -369,6 +370,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           thinkingDone: thinkingDone,
           isStreaming: isStreaming,
           maxWidth: maxContentWidth,
+          messageIndex: index,
         );
       },
     );
@@ -567,6 +569,7 @@ class _AssistantMessage extends StatelessWidget {
   final bool thinkingDone;
   final bool isStreaming;
   final double maxWidth;
+  final int messageIndex;
 
   const _AssistantMessage({
     required this.content,
@@ -574,6 +577,7 @@ class _AssistantMessage extends StatelessWidget {
     required this.thinkingDone,
     this.isStreaming = false,
     required this.maxWidth,
+    required this.messageIndex,
   });
 
   @override
@@ -619,7 +623,7 @@ class _AssistantMessage extends StatelessWidget {
                   const _BlinkingCursor(),
                 // Action bar
                 if (!isStreaming && content.isNotEmpty)
-                  _ActionBar(content: content),
+                  _ActionBar(content: content, messageIndex: messageIndex),
               ],
             ),
           ),
@@ -677,12 +681,16 @@ class _MessageContent extends StatelessWidget {
 // ─────────────────────────────────────────────
 // Action bar (copy)
 // ─────────────────────────────────────────────
-class _ActionBar extends StatelessWidget {
+class _ActionBar extends ConsumerWidget {
   final String content;
-  const _ActionBar({required this.content});
+  final int messageIndex;
+  const _ActionBar({required this.content, required this.messageIndex});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatState = ref.watch(chatProvider);
+    final isSpeakingThis = chatState.isSpeaking && chatState.speakingMessageIndex == messageIndex;
+
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -701,6 +709,18 @@ class _ActionBar extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               );
+            },
+          ),
+          const SizedBox(width: 4),
+          _ActionIcon(
+            icon: isSpeakingThis ? Icons.stop_rounded : Icons.volume_up_rounded,
+            tooltip: isSpeakingThis ? 'Stop reading' : 'Read aloud',
+            onTap: () {
+              if (isSpeakingThis) {
+                ref.read(chatProvider.notifier).stopSpeaking();
+              } else {
+                ref.read(chatProvider.notifier).speakMessage(content, messageIndex);
+              }
             },
           ),
         ],

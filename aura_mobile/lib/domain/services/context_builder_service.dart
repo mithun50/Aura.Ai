@@ -91,7 +91,10 @@ class ContextBuilderService {
     // 5. SMS Context
     if (includeSms) {
       try {
-        final messages = await _smsService.searchMessages(userMessage);
+        final smsQuery = _extractSmsSearchQuery(userMessage);
+        final messages = smsQuery.isNotEmpty
+            ? await _smsService.searchMessages(smsQuery)
+            : await _smsService.getRecentMessages(count: 10);
         if (messages.isNotEmpty) {
           buffer.writeln(_smsService.formatAsContext(messages));
         }
@@ -114,5 +117,44 @@ class ContextBuilderService {
     }
 
     return buffer.toString();
+  }
+
+  /// Extract a meaningful search query from a raw user message about SMS.
+  /// e.g. "show my messages from mom" → "mom"
+  /// e.g. "texts from +1234567890" → "+1234567890"
+  /// e.g. "read my recent messages" → "" (empty = get recent)
+  String _extractSmsSearchQuery(String message) {
+    final lower = message.toLowerCase().trim();
+
+    // Patterns: "from <name>", "sms from <name>", "text from <name>", "messages from <name>"
+    final fromPattern = RegExp(r'(?:from|by)\s+(.+?)(?:\s*[?.!]?\s*$)', caseSensitive: false);
+    final fromMatch = fromPattern.firstMatch(lower);
+    if (fromMatch != null) {
+      return fromMatch.group(1)!.trim();
+    }
+
+    // Patterns: "about <topic>"
+    final aboutPattern = RegExp(r'about\s+(.+?)(?:\s*[?.!]?\s*$)', caseSensitive: false);
+    final aboutMatch = aboutPattern.firstMatch(lower);
+    if (aboutMatch != null) {
+      return aboutMatch.group(1)!.trim();
+    }
+
+    // Patterns: "with <name>"
+    final withPattern = RegExp(r'with\s+(.+?)(?:\s*[?.!]?\s*$)', caseSensitive: false);
+    final withMatch = withPattern.firstMatch(lower);
+    if (withMatch != null) {
+      return withMatch.group(1)!.trim();
+    }
+
+    // Phone number anywhere in message
+    final phonePattern = RegExp(r'[\+]?[\d\s\-]{7,}');
+    final phoneMatch = phonePattern.firstMatch(message);
+    if (phoneMatch != null) {
+      return phoneMatch.group(0)!.trim();
+    }
+
+    // If just asking for recent/all messages, return empty
+    return '';
   }
 }

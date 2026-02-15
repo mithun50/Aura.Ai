@@ -26,6 +26,16 @@ class DocumentService {
 
   DocumentService(this._repository, this._embeddingService, this._permissionService);
 
+  /// Check if any documents have been uploaded
+  Future<bool> hasDocuments() async {
+    try {
+      final docs = await _repository.getAllDocuments();
+      return docs.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<String?> pickAndProcessDocument() async {
     // Request storage permission before picking files
     final hasPermission = await _permissionService.requestStoragePermission();

@@ -4,6 +4,7 @@ import 'package:aura_mobile/core/services/voice_service.dart';
 import 'package:aura_mobile/core/providers/ai_providers.dart';
 import 'package:aura_mobile/domain/entities/chat_message.dart';
 import 'package:aura_mobile/data/repositories/chat_repository_impl.dart';
+import 'package:aura_mobile/domain/services/document_service.dart';
 
 // Voice Service
 final voiceServiceProvider = Provider((ref) => VoiceService());
@@ -13,12 +14,16 @@ class ChatState {
   final List<Map<String, String>> messages;
   final bool isListening;
   final bool isThinking;
+  final bool isSpeaking;
+  final int? speakingMessageIndex;
   final String? error;
 
   ChatState({
     this.messages = const [],
     this.isThinking = false,
     this.isListening = false,
+    this.isSpeaking = false,
+    this.speakingMessageIndex,
     this.error,
   });
 
@@ -26,12 +31,17 @@ class ChatState {
     List<Map<String, String>>? messages,
     bool? isThinking,
     bool? isListening,
+    bool? isSpeaking,
+    int? speakingMessageIndex,
     String? error,
   }) {
+    final speaking = isSpeaking ?? this.isSpeaking;
     return ChatState(
       messages: messages ?? this.messages,
       isThinking: isThinking ?? this.isThinking,
       isListening: isListening ?? this.isListening,
+      isSpeaking: speaking,
+      speakingMessageIndex: speaking ? (speakingMessageIndex ?? this.speakingMessageIndex) : null,
       error: error,
     );
   }
@@ -145,12 +155,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
 
     try {
+      // Check if user has uploaded documents
+      final documentService = _ref.read(documentServiceProvider);
+      final hasDocuments = await documentService.hasDocuments();
+
       // Route everything through the Orchestrator
       final orchestrator = _ref.read(orchestratorProvider);
       final stream = orchestrator.processUserRequest(
         text,
         chatHistory: _recentHistory(),
-        hasDocuments: true,
+        hasDocuments: hasDocuments,
       );
 
       String fullResponse = '';
@@ -243,6 +257,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
       };
       state = state.copyWith(messages: newMessages);
     }
+  }
+
+  Future<void> speakMessage(String text, int messageIndex) async {
+    final voiceService = _ref.read(voiceServiceProvider);
+    await voiceService.initialize();
+    state = state.copyWith(isSpeaking: true, speakingMessageIndex: messageIndex);
+    await voiceService.speak(text);
+    // TTS completion — reset state after speaking finishes
+    // flutter_tts fires a completion handler internally, but we reset on next action
+  }
+
+  Future<void> stopSpeaking() async {
+    final voiceService = _ref.read(voiceServiceProvider);
+    await voiceService.stopSpeaking();
+    state = state.copyWith(isSpeaking: false);
   }
 
   Future<void> clearChat() async {

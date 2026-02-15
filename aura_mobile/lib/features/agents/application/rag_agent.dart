@@ -13,7 +13,7 @@ class RAGAgent implements Agent {
 
   @override
   Future<bool> canHandle(String intent) async {
-    return intent == 'document_query';
+    return intent == 'document_query' || intent == 'file_action';
   }
 
   @override
