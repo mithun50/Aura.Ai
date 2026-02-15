@@ -69,18 +69,9 @@ final List<ModelInfo> modelCatalog = [
     speed: 'Fast',
     family: 'Qwen',
   ),
-  ModelInfo(
-    id: 'qwen3-0.6b',
-    name: 'Qwen3 0.6B',
-    description: 'Latest Qwen with reasoning. Shows thinking process like ChatGPT.',
-    url: 'https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_K_M.gguf?download=true',
-    fileName: 'qwen3-0.6b.gguf',
-    sizeBytes: 416284672, // ~397MB
-    ramRequirement: '1.5GB',
-    speed: 'Fast',
-    family: 'Qwen',
-    hasThinking: true,
-  ),
+  // NOTE: Qwen3 0.6B removed — requires llama.cpp >= b5092 (Qwen3 arch, released Apr 2025).
+  // The current fllama package (v0.0.1) bundles llama.cpp from ~Nov 2024, which predates Qwen3.
+  // To re-add Qwen3, switch to a newer LLM backend like llm_llamacpp (v0.1.7+).
 
   // ==================== SMALL (500MB - 1GB) ====================
   ModelInfo(
