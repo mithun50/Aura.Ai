@@ -921,7 +921,7 @@ class _TypingDotsState extends State<_TypingDots> with TickerProviderStateMixin 
             child: Row(
               children: List.generate(3, (i) => AnimatedBuilder(
                 animation: _anims[i],
-                builder: (_, __) => Transform.translate(
+                builder: (_, _) => Transform.translate(
                   offset: Offset(0, _anims[i].value),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -970,7 +970,7 @@ class _BlinkingCursorState extends State<_BlinkingCursor> with SingleTickerProvi
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) => Opacity(
+      builder: (_, _) => Opacity(
         opacity: _controller.value,
         child: Container(
           width: 2, height: 18,

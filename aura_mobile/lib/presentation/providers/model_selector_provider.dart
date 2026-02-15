@@ -311,10 +311,6 @@ class ModelSelectorNotifier extends StateNotifier<ModelSelectorState> {
     } catch (e) {
       debugPrint('Error selecting model: $e');
 
-      // If model load failed, mark as corrupt and remove from downloaded
-      final newDownloaded = Set<String>.from(state.downloadedModelIds);
-      // Don't remove from downloaded — might be a temporary error
-
       _safeSetState(state.copyWith(
         isLoadingModel: false,
         loadingModelId: null,
